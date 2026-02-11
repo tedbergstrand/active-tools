@@ -27,6 +27,7 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [chaining, setChaining] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const { speak } = useSpeech();
 
@@ -59,6 +60,13 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
     });
     setSaved(true);
   };
+
+  // Auto-close after save (only when not chaining to next tool)
+  useEffect(() => {
+    if (!saved || chaining) return;
+    const t = setTimeout(onDiscard, 600);
+    return () => clearTimeout(t);
+  }, [saved, chaining, onDiscard]);
 
   const followUp = FOLLOW_UPS[tool?.category];
 
@@ -113,6 +121,7 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
               <button
                 key={t.id}
                 onClick={async () => {
+                  setChaining(true);
                   await handleSave();
                   onStartNext(t);
                 }}
