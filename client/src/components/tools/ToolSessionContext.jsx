@@ -18,11 +18,13 @@ export function ToolSessionProvider({ children }) {
 
   // Persist session to localStorage
   useEffect(() => {
-    if (session) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    try {
+      if (session) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch { /* quota exceeded or private browsing */ }
   }, [session]);
 
   const startSession = useCallback((tool, config) => {

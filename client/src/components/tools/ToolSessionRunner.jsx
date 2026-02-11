@@ -102,7 +102,7 @@ export function ToolSessionRunner({ tool, initialConfig, onClose, onMinimize, se
   }, []);
 
   const releaseWakeLock = useCallback(() => {
-    wakeLockRef.current?.release();
+    wakeLockRef.current?.release().catch(() => {});
     wakeLockRef.current = null;
   }, []);
 

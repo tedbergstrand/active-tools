@@ -33,6 +33,7 @@ export function useCallout({ pools = {}, interval = 8, mode = 'timed', callouts 
   }, [generate]);
 
   const startAuto = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
     setIsActive(true);
     generate();
     intervalRef.current = setInterval(() => {

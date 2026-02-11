@@ -256,11 +256,14 @@ function seed() {
 }
 
 function seedToolDefinitions() {
-  db.prepare('DELETE FROM tool_sessions').run();
-  db.prepare('DELETE FROM tool_definitions').run();
-  const insert = db.prepare(
+  const upsert = db.prepare(
     `INSERT INTO tool_definitions (slug, name, category, subcategory, description, instructions, trains, tool_type, default_config, difficulty, requires_partner)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(slug) DO UPDATE SET
+       name=excluded.name, category=excluded.category, subcategory=excluded.subcategory,
+       description=excluded.description, instructions=excluded.instructions, trains=excluded.trains,
+       tool_type=excluded.tool_type, default_config=excluded.default_config,
+       difficulty=excluded.difficulty, requires_partner=excluded.requires_partner`
   );
 
   const tools = [
@@ -791,12 +794,12 @@ function seedToolDefinitions() {
       'beginner', 0],
   ];
 
-  const insertMany = db.transaction((items) => {
+  const upsertMany = db.transaction((items) => {
     for (const item of items) {
-      insert.run(...item);
+      upsert.run(...item);
     }
   });
-  insertMany(tools);
+  upsertMany(tools);
   console.log(`  Inserted ${tools.length} tool definitions`);
 }
 
