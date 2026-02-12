@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/layout/Header.jsx';
 import { PlanCard } from '../components/plans/PlanCard.jsx';
+import { Button } from '../components/common/Button.jsx';
 import { Tabs } from '../components/common/Tabs.jsx';
 import { PageLoading } from '../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../components/common/EmptyState.jsx';
 import { usePlans } from '../hooks/usePlans.js';
 import { plansApi } from '../api/plans.js';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
 
 const categoryTabs = [
   { value: '', label: 'All' },
@@ -16,6 +18,7 @@ const categoryTabs = [
 ];
 
 export function Plans() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('');
   const { plans, loading, refetch } = usePlans(filter ? { category: filter } : {});
 
@@ -33,7 +36,9 @@ export function Plans() {
 
   return (
     <div className="space-y-6">
-      <Header title="Training Plans" />
+      <Header title="Training Plans">
+        <Button onClick={() => navigate('/plans/new')}><Plus size={16} /> Create Plan</Button>
+      </Header>
       <Tabs tabs={categoryTabs} active={filter} onChange={setFilter} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

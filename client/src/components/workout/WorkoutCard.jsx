@@ -11,6 +11,7 @@ const categoryColors = { roped: 'blue', bouldering: 'amber', traditional: 'emera
 export function WorkoutCard({ workout }) {
   const navigate = useNavigate();
   const cat = CATEGORIES[workout.category] || {};
+  const exercises = workout.exercise_summary || [];
 
   return (
     <Card onClick={() => navigate(`/workout/${workout.id}`)} className="p-4">
@@ -34,8 +35,21 @@ export function WorkoutCard({ workout }) {
           <span className="flex items-center gap-1"><Gauge size={14} /> RPE {workout.rpe}</span>
         )}
       </div>
+      {exercises.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {exercises.slice(0, 4).map((ex, i) => (
+            <span key={i} className="text-xs px-2 py-0.5 rounded-md bg-[#0f1117] text-gray-400 border border-[#2e3347]/50">
+              {ex.name}{ex.set_count > 0 ? ` ×${ex.set_count}` : ''}
+              {ex.top_grade ? ` (${ex.top_grade})` : ''}
+            </span>
+          ))}
+          {exercises.length > 4 && (
+            <span className="text-xs px-2 py-0.5 text-gray-500">+{exercises.length - 4} more</span>
+          )}
+        </div>
+      )}
       {workout.notes && (
-        <p className="mt-2 text-sm text-gray-500 line-clamp-2">{workout.notes}</p>
+        <p className="mt-2 text-sm text-gray-500 line-clamp-1">{workout.notes}</p>
       )}
     </Card>
   );

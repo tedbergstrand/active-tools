@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Mountain, Gem, Dumbbell, ClipboardList,
-  BarChart3, Timer, Settings, Plus, Wrench
+  BarChart3, Timer, Settings, Plus, Wrench, History
 } from 'lucide-react';
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/training', icon: Dumbbell, label: 'Training', color: 'text-emerald-500' },
   { divider: true },
   { to: '/log', icon: Plus, label: 'Log Workout' },
+  { to: '/history', icon: History, label: 'History' },
   { to: '/plans', icon: ClipboardList, label: 'Plans' },
   { to: '/progress', icon: BarChart3, label: 'Progress' },
   { to: '/timer', icon: Timer, label: 'Timer', color: 'text-red-500' },

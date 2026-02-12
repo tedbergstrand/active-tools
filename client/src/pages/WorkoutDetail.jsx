@@ -11,6 +11,8 @@ import { formatDuration, formatWeight, formatSeconds } from '../utils/formatters
 import { Clock, MapPin, Gauge, Trash2, Pencil, Copy } from 'lucide-react';
 import { todayISO } from '../utils/dates.js';
 import { workoutsApi } from '../api/workouts.js';
+import { useSettings } from '../components/settings/SettingsContext.jsx';
+import { useToast } from '../components/common/Toast.jsx';
 
 const categoryColors = { roped: 'blue', bouldering: 'amber', traditional: 'emerald' };
 
@@ -18,6 +20,9 @@ export function WorkoutDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { workout, loading } = useWorkout(id);
+  const { settings } = useSettings();
+  const toast = useToast();
+  const units = settings.units || 'metric';
 
   if (loading) return <PageLoading />;
   if (!workout) return <div className="text-center py-12 text-gray-500">Workout not found</div>;
@@ -54,8 +59,13 @@ export function WorkoutDetail() {
 
   const handleDelete = async () => {
     if (!confirm('Delete this workout?')) return;
-    await workoutsApi.delete(id);
-    navigate(-1);
+    try {
+      await workoutsApi.delete(id);
+      toast.success('Workout deleted');
+      navigate(-1);
+    } catch (err) {
+      toast.error('Failed to delete workout');
+    }
   };
 
   return (
@@ -108,7 +118,7 @@ export function WorkoutDetail() {
                   )}
                   {set.route_name && <span className="text-gray-300">{set.route_name}</span>}
                   {set.reps && <span className="text-gray-300">{set.reps} reps</span>}
-                  {set.weight_kg > 0 && <span className="text-gray-300">{formatWeight(set.weight_kg)}</span>}
+                  {set.weight_kg > 0 && <span className="text-gray-300">{formatWeight(set.weight_kg, units)}</span>}
                   {set.duration_seconds > 0 && <span className="text-gray-300">{formatSeconds(set.duration_seconds)}</span>}
                   {set.grip_type && <Badge color="gray">{set.grip_type}</Badge>}
                   {set.edge_size_mm > 0 && <span className="text-gray-500">{set.edge_size_mm}mm</span>}

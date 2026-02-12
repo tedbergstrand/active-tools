@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { TimerProvider } from './components/timer/TimerContext.jsx';
 import { ToolSessionProvider } from './components/tools/ToolSessionContext.jsx';
+import { SettingsProvider } from './components/settings/SettingsContext.jsx';
+import { ToastProvider } from './components/common/Toast.jsx';
 import { AppShell } from './components/layout/AppShell.jsx';
 import { Dashboard } from './pages/Dashboard.jsx';
 import { RopedClimbing } from './pages/RopedClimbing.jsx';
@@ -9,6 +11,8 @@ import { TraditionalExercise } from './pages/TraditionalExercise.jsx';
 import { LogWorkout } from './pages/LogWorkout.jsx';
 import { WorkoutDetail } from './pages/WorkoutDetail.jsx';
 import { EditWorkout } from './pages/EditWorkout.jsx';
+import { WorkoutHistory } from './pages/WorkoutHistory.jsx';
+import { CreatePlan } from './pages/CreatePlan.jsx';
 import { Plans } from './pages/Plans.jsx';
 import { PlanDetailPage } from './pages/PlanDetailPage.jsx';
 import { Progress } from './pages/Progress.jsx';
@@ -20,6 +24,8 @@ import { ToolSession } from './pages/ToolSession.jsx';
 export default function App() {
   return (
     <BrowserRouter>
+      <SettingsProvider>
+      <ToastProvider>
       <TimerProvider>
         <ToolSessionProvider>
           <Routes>
@@ -31,7 +37,9 @@ export default function App() {
               <Route path="/log/:category?" element={<LogWorkout />} />
               <Route path="/workout/:id" element={<WorkoutDetail />} />
               <Route path="/workout/:id/edit" element={<EditWorkout />} />
+              <Route path="/history" element={<WorkoutHistory />} />
               <Route path="/plans" element={<Plans />} />
+              <Route path="/plans/new" element={<CreatePlan />} />
               <Route path="/plans/:id" element={<PlanDetailPage />} />
               <Route path="/progress" element={<Progress />} />
               <Route path="/timer" element={<TimerPage />} />
@@ -42,6 +50,8 @@ export default function App() {
           </Routes>
         </ToolSessionProvider>
       </TimerProvider>
+      </ToastProvider>
+      </SettingsProvider>
     </BrowserRouter>
   );
 }

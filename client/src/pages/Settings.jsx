@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader } from '../components/common/Card.jsx';
 import { Select } from '../components/common/Select.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { settingsApi } from '../api/settings.js';
+import { useSettings } from '../components/settings/SettingsContext.jsx';
+import { useToast } from '../components/common/Toast.jsx';
 import { Save, Download } from 'lucide-react';
 
 const gradeSystemOptions = [
@@ -27,6 +29,8 @@ const boolOptions = [
 ];
 
 export function Settings() {
+  const { refresh: refreshGlobal } = useSettings();
+  const toast = useToast();
   const [settings, setSettings] = useState({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -44,8 +48,12 @@ export function Settings() {
     setSaving(true);
     try {
       await settingsApi.update(settings);
+      refreshGlobal();
       setSaved(true);
+      toast.success('Settings saved');
       setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      toast.error('Failed to save settings');
     } finally {
       setSaving(false);
     }

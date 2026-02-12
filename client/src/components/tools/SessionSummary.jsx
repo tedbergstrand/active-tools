@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Clock, Hash, Sparkles, Check, Loader2, Dumbbell } from 'lucide-react';
+import { Trophy, Clock, Hash, Sparkles, Check, Loader2, Dumbbell, Timer } from 'lucide-react';
 import { Button } from '../common/Button.jsx';
 import { useSpeech, formatTimeAsSpeech } from '../../hooks/useSpeech.js';
+import { useTimerContext } from '../timer/TimerContext.jsx';
 import { toolsApi } from '../../api/tools.js';
 import { formatSessionTime } from '../../utils/buildSteps.js';
 import { todayISO } from '../../utils/dates.js';
@@ -25,8 +26,16 @@ const FOLLOW_UPS = {
   cooldown: { next: null, label: null },
 };
 
+const REST_OPTIONS = [
+  { label: '1 min', seconds: 60 },
+  { label: '2 min', seconds: 120 },
+  { label: '3 min', seconds: 180 },
+  { label: '5 min', seconds: 300 },
+];
+
 export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDiscard, onStartNext }) {
   const navigate = useNavigate();
+  const timer = useTimerContext();
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -45,7 +54,6 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
     if (!followUp?.next || !onStartNext) return;
     toolsApi.list({ category: followUp.next }).then(tools => {
       if (tools.length > 0) {
-        // Pick up to 3 random suggestions
         const shuffled = tools.sort(() => Math.random() - 0.5);
         setSuggestions(shuffled.slice(0, 3));
       }
@@ -83,12 +91,10 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
     });
   };
 
-  // Auto-close after save (only when not chaining to next tool)
-  useEffect(() => {
-    if (!saved || chaining) return;
-    const t = setTimeout(onDiscard, 600);
-    return () => clearTimeout(t);
-  }, [saved, chaining, onDiscard]);
+  const handleStartRest = (seconds) => {
+    timer.startSimple(seconds, 'Rest');
+    timer.start();
+  };
 
   const followUp = FOLLOW_UPS[tool?.category];
 
@@ -125,17 +131,44 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
         />
       </div>
 
-      <div className="flex gap-2">
-        <Button onClick={handleSave} disabled={saving || saved} className="flex-1">
-          {saved ? <><Check size={18} /> Saved</> : saving ? <><Loader2 size={18} className="animate-spin" /> Saving...</> : 'Save Session'}
-        </Button>
-        <Button variant="secondary" onClick={onDiscard}>Discard</Button>
-      </div>
+      {!saved ? (
+        <div className="flex gap-2">
+          <Button onClick={handleSave} disabled={saving} className="flex-1">
+            {saving ? <><Loader2 size={18} className="animate-spin" /> Saving...</> : 'Save Session'}
+          </Button>
+          <Button variant="secondary" onClick={onDiscard}>Discard</Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium justify-center">
+            <Check size={16} /> Session saved
+          </div>
 
-      {saved && (
-        <Button variant="secondary" onClick={handleLogAsWorkout} className="w-full">
-          <Dumbbell size={18} /> Log as Workout
-        </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={handleLogAsWorkout} className="flex-1">
+              <Dumbbell size={18} /> Log as Workout
+            </Button>
+            <Button variant="secondary" onClick={onDiscard}>Done</Button>
+          </div>
+
+          {/* Rest timer shortcuts */}
+          <div className="space-y-2">
+            <h3 className="flex items-center gap-1.5 text-sm font-medium text-gray-400">
+              <Timer size={14} className="text-red-400" /> Start a rest timer
+            </h3>
+            <div className="flex gap-2">
+              {REST_OPTIONS.map(opt => (
+                <button
+                  key={opt.seconds}
+                  onClick={() => { handleStartRest(opt.seconds); onDiscard(); }}
+                  className="flex-1 py-2.5 text-sm font-medium rounded-xl bg-[#0f1117] border border-[#2e3347] text-gray-300 hover:border-red-500/30 hover:text-red-400 transition-colors"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Session chaining suggestions */}

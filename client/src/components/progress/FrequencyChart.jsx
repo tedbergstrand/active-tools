@@ -3,7 +3,7 @@ import { useFrequencyData } from '../../hooks/useProgress.js';
 import { EmptyState } from '../common/EmptyState.jsx';
 import { CalendarDays } from 'lucide-react';
 
-const CATEGORY_COLORS = { roped: '#3b82f6', bouldering: '#f59e0b', traditional: '#10b981' };
+const CATEGORY_COLORS = { roped: '#3b82f6', bouldering: '#f59e0b', traditional: '#10b981', tools: '#8b5cf6' };
 
 export function FrequencyChart({ days = 90 }) {
   const { frequency, loading } = useFrequencyData({ days });
@@ -55,6 +55,7 @@ export function FrequencyChart({ days = 90 }) {
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500" /> Roped</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-500" /> Bouldering</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500" /> Training</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-violet-500" /> Tools</span>
         </div>
       </CardContent>
     </Card>

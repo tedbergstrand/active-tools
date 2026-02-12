@@ -5,7 +5,7 @@ import { CATEGORIES } from '../../utils/constants.js';
 import { EmptyState } from '../common/EmptyState.jsx';
 import { PieChart as PieIcon } from 'lucide-react';
 
-const COLORS = { roped: '#3b82f6', bouldering: '#f59e0b', traditional: '#10b981' };
+const COLORS = { roped: '#3b82f6', bouldering: '#f59e0b', traditional: '#10b981', tools: '#8b5cf6' };
 
 export function DistributionChart({ days = 90 }) {
   const { distribution, loading } = useDistribution({ days });

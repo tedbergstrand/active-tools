@@ -51,7 +51,17 @@ router.get('/summary', (req, res) => {
     ${whereClause}
   `).get(...params).count;
 
-  res.json({ totalWorkouts, totalDuration, avgRpe, totalSets, days: Number(days) });
+  // Tool session stats for the same period
+  const toolSessions = db.prepare(
+    `SELECT COUNT(*) as count, COALESCE(SUM(duration_seconds), 0) as seconds
+     FROM tool_sessions WHERE date >= ?`
+  ).get(since);
+
+  res.json({
+    totalWorkouts, totalDuration, avgRpe, totalSets, days: Number(days),
+    toolSessions: toolSessions.count,
+    toolMinutes: Math.round(toolSessions.seconds / 60),
+  });
 });
 
 router.get('/grades', (req, res) => {
@@ -102,19 +112,29 @@ router.get('/frequency', (req, res) => {
   const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
 
   const frequency = db.prepare(`
-    SELECT w.date, w.category, COUNT(*) as count
-    FROM workouts w
-    WHERE w.date >= ?
-    GROUP BY w.date, w.category
-    ORDER BY w.date
-  `).all(since);
+    SELECT date, category, SUM(cnt) as count FROM (
+      SELECT w.date, w.category, COUNT(*) as cnt
+      FROM workouts w WHERE w.date >= ?
+      GROUP BY w.date, w.category
+      UNION ALL
+      SELECT ts.date, 'tools' as category, COUNT(*) as cnt
+      FROM tool_sessions ts WHERE ts.date >= ?
+      GROUP BY ts.date
+    ) GROUP BY date, category
+    ORDER BY date
+  `).all(since, since);
 
   res.json(frequency);
 });
 
 router.get('/streak', (req, res) => {
+  // Include both workout dates and tool session dates
   const dates = db.prepare(
-    `SELECT DISTINCT date FROM workouts ORDER BY date DESC`
+    `SELECT DISTINCT date FROM (
+       SELECT date FROM workouts
+       UNION
+       SELECT date FROM tool_sessions
+     ) ORDER BY date DESC`
   ).all().map(r => r.date);
 
   if (dates.length === 0) return res.json({ current: 0, longest: 0 });
@@ -189,10 +209,14 @@ router.get('/distribution', (req, res) => {
   const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
 
   const rows = db.prepare(`
-    SELECT category, COUNT(*) as sessions, COALESCE(SUM(duration_minutes), 0) as total_minutes
-    FROM workouts WHERE date >= ?
-    GROUP BY category
-  `).all(since);
+    SELECT category, SUM(sessions) as sessions, SUM(total_minutes) as total_minutes FROM (
+      SELECT category, COUNT(*) as sessions, COALESCE(SUM(duration_minutes), 0) as total_minutes
+      FROM workouts WHERE date >= ? GROUP BY category
+      UNION ALL
+      SELECT 'tools' as category, COUNT(*) as sessions, ROUND(COALESCE(SUM(duration_seconds), 0) / 60.0) as total_minutes
+      FROM tool_sessions WHERE date >= ?
+    ) GROUP BY category
+  `).all(since, since);
 
   res.json(rows);
 });

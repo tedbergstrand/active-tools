@@ -3,13 +3,35 @@ import db from '../db/database.js';
 
 const router = Router();
 
+const VALID_CATEGORIES = ['roped', 'bouldering', 'traditional'];
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function validateWorkoutBody(body) {
+  const errors = [];
+  if (body.category && !VALID_CATEGORIES.includes(body.category)) errors.push('Invalid category');
+  if (body.rpe != null && body.rpe !== '' && (Number(body.rpe) < 1 || Number(body.rpe) > 10)) errors.push('RPE must be 1-10');
+  if (body.date && !DATE_RE.test(body.date)) errors.push('Date must be YYYY-MM-DD format');
+  if (body.duration_minutes != null && body.duration_minutes !== '' && body.duration_minutes !== null) {
+    const d = Number(body.duration_minutes);
+    if (d < 0 || d > 1440) errors.push('Duration must be 0-1440 minutes');
+  }
+  return errors;
+}
+
 router.get('/', (req, res) => {
-  const { category } = req.query;
+  const { category, location, search, date_from, date_to } = req.query;
   const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 50));
   const offset = Math.max(0, Number(req.query.offset) || 0);
   let sql = 'SELECT * FROM workouts WHERE 1=1';
   const params = [];
-  if (category) { sql += ' AND category = ?'; params.push(category); }
+  if (category) {
+    if (!VALID_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Invalid category' });
+    sql += ' AND category = ?'; params.push(category);
+  }
+  if (location) { sql += ' AND location LIKE ?'; params.push(`%${location}%`); }
+  if (search) { sql += ' AND (notes LIKE ? OR location LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+  if (date_from) { sql += ' AND date >= ?'; params.push(date_from); }
+  if (date_to) { sql += ' AND date <= ?'; params.push(date_to); }
   sql += ' ORDER BY date DESC, created_at DESC LIMIT ? OFFSET ?';
   params.push(limit, offset);
 
@@ -17,6 +39,29 @@ router.get('/', (req, res) => {
   const total = db.prepare(
     `SELECT COUNT(*) as count FROM workouts${category ? ' WHERE category = ?' : ''}`
   ).get(...(category ? [category] : []));
+
+  // Attach exercise summaries for each workout in a single batch query
+  if (workouts.length) {
+    const ids = workouts.map(w => w.id);
+    const exerciseSummaries = db.prepare(`
+      SELECT we.workout_id, e.name, COUNT(ws.id) as set_count,
+             MAX(ws.grade) as top_grade
+      FROM workout_exercises we
+      JOIN exercises e ON e.id = we.exercise_id
+      LEFT JOIN workout_sets ws ON ws.workout_exercise_id = we.id
+      WHERE we.workout_id IN (${ids.map(() => '?').join(',')})
+      GROUP BY we.id
+      ORDER BY we.sort_order
+    `).all(...ids);
+
+    const byWorkout = {};
+    for (const row of exerciseSummaries) {
+      (byWorkout[row.workout_id] ??= []).push(row);
+    }
+    for (const w of workouts) {
+      w.exercise_summary = byWorkout[w.id] || [];
+    }
+  }
 
   res.json({ workouts, total: total.count });
 });
@@ -54,6 +99,8 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   const { category, date, duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id, exercises } = req.body;
   if (!category) return res.status(400).json({ error: 'Category required' });
+  const errors = validateWorkoutBody(req.body);
+  if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   const result = db.transaction(() => {
     const w = db.prepare(`
@@ -94,6 +141,8 @@ router.put('/:id', (req, res) => {
   const { category, date, duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id, exercises } = req.body;
   const existing = db.prepare('SELECT id FROM workouts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Workout not found' });
+  const errors = validateWorkoutBody(req.body);
+  if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   db.transaction(() => {
     db.prepare(`

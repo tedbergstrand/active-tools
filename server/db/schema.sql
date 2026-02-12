@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS workouts (
 CREATE TABLE IF NOT EXISTS workout_exercises (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   workout_id INTEGER NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
-  exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+  exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
   sort_order INTEGER DEFAULT 0,
   notes TEXT
 );
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS plan_workouts (
 CREATE TABLE IF NOT EXISTS plan_workout_exercises (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   plan_workout_id INTEGER NOT NULL REFERENCES plan_workouts(id) ON DELETE CASCADE,
-  exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+  exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
   sort_order INTEGER DEFAULT 0,
   target_sets INTEGER,
   target_reps INTEGER,

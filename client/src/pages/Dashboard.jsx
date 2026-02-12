@@ -12,7 +12,7 @@ import { useProgressSummary, useStreak } from '../hooks/useProgress.js';
 import { toolsApi } from '../api/tools.js';
 import { plansApi } from '../api/plans.js';
 import { todayISO } from '../utils/dates.js';
-import { Plus, Mountain, Gem, Dumbbell, Wrench, Activity, Clock, Gauge, Layers, Play, ChevronRight, Calendar, CheckCircle2, Flame } from 'lucide-react';
+import { Plus, Mountain, Gem, Dumbbell, Wrench, Activity, Clock, Gauge, Layers, Play, ChevronRight, Zap, CheckCircle2, Flame } from 'lucide-react';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -62,13 +62,14 @@ export function Dashboard() {
         <Button onClick={() => navigate('/log')}><Plus size={18} /> Log Workout</Button>
       </Header>
 
-      <ActivePlanBanner />
-
-      {todayPlan && todayPlan.workouts.length > 0 && (
-        <Card className="p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Calendar size={18} className="text-blue-400" />
-            <h3 className="font-semibold">Today's Plan</h3>
+      {todayPlan && todayPlan.workouts.length > 0 ? (
+        <Card className="p-4 space-y-3 border-emerald-500/20 bg-emerald-500/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap size={18} className="text-emerald-400" />
+              <h3 className="font-semibold text-emerald-400">{todayPlan.plan.name}</h3>
+            </div>
+            <button onClick={() => navigate(`/plans/${todayPlan.plan.id}`)} className="text-sm text-gray-400 hover:text-gray-300">View Plan</button>
           </div>
           {todayPlan.workouts.map(w => (
             <div key={w.id} className="flex items-center justify-between py-2 border-b border-[#2e3347] last:border-0">
@@ -109,6 +110,8 @@ export function Dashboard() {
             </div>
           ))}
         </Card>
+      ) : (
+        <ActivePlanBanner />
       )}
 
       {/* Training tools entry point — prominent on mobile */}
@@ -159,7 +162,7 @@ export function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Recent Workouts</h2>
-          <button onClick={() => navigate('/progress')} className="text-sm text-blue-400 hover:text-blue-300">View All</button>
+          <button onClick={() => navigate('/history')} className="text-sm text-blue-400 hover:text-blue-300">View All</button>
         </div>
         <div className="space-y-3">
           {workouts.map(w => <WorkoutCard key={w.id} workout={w} />)}

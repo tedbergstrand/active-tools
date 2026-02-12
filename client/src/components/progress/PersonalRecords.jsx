@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardContent } from '../common/Card.jsx';
 import { usePersonalRecords } from '../../hooks/useProgress.js';
+import { useSettings } from '../settings/SettingsContext.jsx';
 import { EmptyState } from '../common/EmptyState.jsx';
 import { Trophy, TrendingUp, Weight, Timer, Repeat } from 'lucide-react';
 import { formatDate } from '../../utils/dates.js';
@@ -20,6 +21,8 @@ function RecordRow({ icon: Icon, label, value, date, color = 'text-yellow-400' }
 
 export function PersonalRecords({ category }) {
   const { records, loading } = usePersonalRecords(category ? { category } : {});
+  const { settings } = useSettings();
+  const units = settings.units || 'metric';
 
   if (loading) return null;
 
@@ -47,7 +50,7 @@ export function PersonalRecords({ category }) {
         ))}
         {records.maxWeights.slice(0, 5).map((r, i) => (
           <RecordRow key={`w${i}`} icon={Weight} label={r.exercise_name}
-            value={formatWeight(r.max_weight)} date={r.date} color="text-emerald-400" />
+            value={formatWeight(r.max_weight, units)} date={r.date} color="text-emerald-400" />
         ))}
         {records.maxReps.slice(0, 3).map((r, i) => (
           <RecordRow key={`r${i}`} icon={Repeat} label={r.exercise_name}

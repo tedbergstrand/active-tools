@@ -5,10 +5,18 @@ const router = Router();
 
 router.get('/', (req, res) => {
   const presets = db.prepare('SELECT * FROM timer_presets ORDER BY name').all();
-  for (const preset of presets) {
-    preset.phases = db.prepare(
-      'SELECT * FROM timer_phases WHERE preset_id = ? ORDER BY phase_order'
-    ).all(preset.id);
+  if (presets.length) {
+    const ids = presets.map(p => p.id);
+    const allPhases = db.prepare(
+      `SELECT * FROM timer_phases WHERE preset_id IN (${ids.map(() => '?').join(',')}) ORDER BY preset_id, phase_order`
+    ).all(...ids);
+    const phasesByPreset = {};
+    for (const phase of allPhases) {
+      (phasesByPreset[phase.preset_id] ??= []).push(phase);
+    }
+    for (const preset of presets) {
+      preset.phases = phasesByPreset[preset.id] || [];
+    }
   }
   res.json(presets);
 });

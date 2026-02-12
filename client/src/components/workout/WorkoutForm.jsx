@@ -8,6 +8,7 @@ import { Button } from '../common/Button.jsx';
 import { ExercisePicker } from './ExercisePicker.jsx';
 import { SetList } from './SetList.jsx';
 import { RestTimerQuick } from '../timer/RestTimerQuick.jsx';
+import { useToast } from '../common/Toast.jsx';
 import { todayISO } from '../../utils/dates.js';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 
@@ -30,6 +31,7 @@ export function WorkoutForm({ initialData, workoutId }) {
   const { category: urlCategory } = useParams();
   const [settings, setSettings] = useState({});
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
   const isEditMode = Boolean(workoutId);
 
   const [form, setForm] = useState(() => initialData ? { ...initialData } : {
@@ -100,7 +102,7 @@ export function WorkoutForm({ initialData, workoutId }) {
         navigate(`/workout/${result.id}`);
       }
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Failed to save workout');
     } finally {
       setSaving(false);
     }
@@ -117,7 +119,7 @@ export function WorkoutForm({ initialData, workoutId }) {
           onChange={e => updateForm('category', e.target.value)} />
         <Input label="Date" type="date" value={form.date}
           onChange={e => updateForm('date', e.target.value)} />
-        <Input label="Duration (min)" type="number" value={form.duration_minutes}
+        <Input label="Duration (min)" type="number" min="0" max="1440" value={form.duration_minutes}
           onChange={e => updateForm('duration_minutes', e.target.value)} placeholder="60" />
         <Input label="RPE (1-10)" type="number" min="1" max="10" value={form.rpe}
           onChange={e => updateForm('rpe', e.target.value)} placeholder="7" />

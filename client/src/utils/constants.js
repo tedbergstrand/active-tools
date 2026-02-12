@@ -3,6 +3,7 @@ export const CATEGORIES = {
   bouldering: { label: 'Bouldering', color: 'text-amber-500', bg: 'bg-amber-500', bgLight: 'bg-amber-500/10', border: 'border-amber-500', icon: 'Gem' },
   traditional: { label: 'Training', color: 'text-emerald-500', bg: 'bg-emerald-500', bgLight: 'bg-emerald-500/10', border: 'border-emerald-500', icon: 'Dumbbell' },
   mixed: { label: 'Mixed', color: 'text-purple-500', bg: 'bg-purple-500', bgLight: 'bg-purple-500/10', border: 'border-purple-500', icon: 'Layers' },
+  tools: { label: 'Tools', color: 'text-violet-500', bg: 'bg-violet-500', bgLight: 'bg-violet-500/10', border: 'border-violet-500', icon: 'Wrench' },
 };
 
 export const SEND_TYPES = [

@@ -34,6 +34,9 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   const { name, category, subcategory, default_metric, description } = req.body;
   if (!name || !category) return res.status(400).json({ error: 'Name and category required' });
+  const validCats = ['roped', 'bouldering', 'traditional'];
+  if (!validCats.includes(category)) return res.status(400).json({ error: 'Invalid category' });
+  if (name.length > 200) return res.status(400).json({ error: 'Name too long' });
   const result = db.prepare(
     'INSERT INTO exercises (name, category, subcategory, default_metric, description) VALUES (?, ?, ?, ?, ?)'
   ).run(name, category, subcategory || null, default_metric || 'reps', description || null);

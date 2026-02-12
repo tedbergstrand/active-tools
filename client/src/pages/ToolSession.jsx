@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { ToolConfigModal } from '../components/tools/ToolConfigModal.jsx';
 import { useToolSession } from '../components/tools/ToolSessionContext.jsx';
 import { toolsApi } from '../api/tools.js';
+import { useToast } from '../components/common/Toast.jsx';
 import { getStepSummary, estimateSessionTime, formatSessionTime } from '../utils/buildSteps.js';
 import { useSpeech, warmUpSpeech } from '../hooks/useSpeech.js';
 
@@ -32,6 +33,7 @@ export function ToolSession() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
   const [audioTested, setAudioTested] = useState(false);
+  const toast = useToast();
   const { speak } = useSpeech();
 
   const testAudio = useCallback(() => {
@@ -49,7 +51,7 @@ export function ToolSession() {
       setLoading(false);
       toolsApi.history({ tool_id: data.id, limit: 5 }).then(setHistory).catch(() => {});
       toolsApi.getFavorites().then(favs => setIsFavorite(favs.includes(data.id))).catch(() => {});
-    }).catch(() => setLoading(false));
+    }).catch(() => { setLoading(false); toast.error('Failed to load tool'); });
   }, [slug]);
 
   const defaultConfig = tool?.default_config ? JSON.parse(tool.default_config) : {};
@@ -79,7 +81,7 @@ export function ToolSession() {
         await toolsApi.addFavorite(tool.id);
         setIsFavorite(true);
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) { toast.error('Failed to update favorite'); }
   };
 
   if (loading) return <LoadingSpinner />;

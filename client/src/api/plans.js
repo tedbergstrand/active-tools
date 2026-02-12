@@ -10,7 +10,13 @@ export const plansApi = {
   progress: (id, options) => api.get(`/plans/${id}/progress`, options),
   create: (data) => api.post('/plans', data),
   update: (id, data) => api.put(`/plans/${id}`, data),
+  updateStructure: (id, weeks) => api.put(`/plans/${id}/structure`, { weeks }),
   activate: (id) => api.post(`/plans/${id}/activate`),
   deactivate: (id) => api.post(`/plans/${id}/deactivate`),
   delete: (id) => api.delete(`/plans/${id}`),
+  addWeek: (planId, data = {}) => api.post(`/plans/${planId}/weeks`, data),
+  deleteWeek: (weekId) => api.delete(`/plans/weeks/${weekId}`),
+  addWorkout: (weekId, data) => api.post(`/plans/weeks/${weekId}/workouts`, data),
+  updateWorkout: (workoutId, data) => api.put(`/plans/workouts/${workoutId}`, data),
+  deleteWorkout: (workoutId) => api.delete(`/plans/workouts/${workoutId}`),
 };
