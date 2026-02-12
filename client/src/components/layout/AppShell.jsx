@@ -15,7 +15,9 @@ export function AppShell() {
   const { settings, loaded } = useSettings();
 
   const handleStartNext = useCallback((nextTool) => {
-    const config = nextTool.default_config ? JSON.parse(nextTool.default_config) : {};
+    let config = {};
+    try { if (nextTool.default_config) config = JSON.parse(nextTool.default_config); }
+    catch { /* use empty config */ }
     toolSession.startSession(nextTool, config);
   }, [toolSession]);
 

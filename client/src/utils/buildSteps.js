@@ -34,7 +34,7 @@ export function buildSteps(tool, config) {
     } else if (config.startWork != null && config.startRest != null) {
       let work = config.startWork, rest = config.startRest, round = 1;
       const minWork = config.minWork ?? 30;
-      const workDecrement = config.workDecrement || 30; // must be >0 to avoid infinite loop
+      const workDecrement = Math.max(1, config.workDecrement ?? 30);
       const restDecrement = config.restDecrement ?? 20;
       while (work >= minWork) {
         steps.push({

@@ -142,7 +142,8 @@ export function ToolConfigModal({ open, onClose, tool, onStart }) {
   };
 
   const resetConfig = () => {
-    setConfig(tool?.default_config ? JSON.parse(tool.default_config) : {});
+    try { setConfig(tool?.default_config ? JSON.parse(tool.default_config) : {}); }
+    catch { setConfig({}); }
   };
 
   const isModified = JSON.stringify(config) !== JSON.stringify(defaultConfig);

@@ -65,7 +65,7 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
   }, [tool?.category, onStartNext]);
 
   const handleSave = async () => {
-    if (saving || saved) return;
+    if (saving || saved) return true;
     setSaving(true);
     try {
       const result = await onSave({
@@ -81,8 +81,10 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
       progressApi.insight({ category: tool?.category, duration: elapsed }).then(data => {
         if (data?.insight) setInsight(data.insight);
       }).catch(() => {});
+      return true;
     } catch (e) {
       toast.error('Failed to save session');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -204,7 +206,8 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
                 key={t.id}
                 onClick={async () => {
                   setChaining(true);
-                  await handleSave();
+                  const ok = await handleSave();
+                  if (!ok) { setChaining(false); return; }
                   onStartNext(t);
                 }}
                 className="w-full bg-[#0f1117] border border-[#2e3347] rounded-xl px-4 py-3 text-left hover:bg-[#1a1d27] active:bg-[#252838] transition-colors min-h-[44px]"

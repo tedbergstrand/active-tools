@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import db from '../db/database.js';
-import { localDateISO } from '../lib/dates.js';
+import { localDateISO, daysAgoISO } from '../lib/dates.js';
 
 const router = Router();
 
@@ -87,12 +87,13 @@ router.get('/sessions/history', (req, res) => {
 router.get('/sessions/stats', (req, res) => {
   const total = db.prepare('SELECT COUNT(*) as count FROM tool_sessions').get();
   const totalTime = db.prepare('SELECT COALESCE(SUM(duration_seconds), 0) as total FROM tool_sessions').get();
+  const weekAgo = daysAgoISO(7);
   const thisWeek = db.prepare(
-    `SELECT COUNT(*) as count FROM tool_sessions WHERE date >= date('now', '-7 days')`
-  ).get();
+    `SELECT COUNT(*) as count FROM tool_sessions WHERE date >= ?`
+  ).get(weekAgo);
   const thisWeekTime = db.prepare(
-    `SELECT COALESCE(SUM(duration_seconds), 0) as total FROM tool_sessions WHERE date >= date('now', '-7 days')`
-  ).get();
+    `SELECT COALESCE(SUM(duration_seconds), 0) as total FROM tool_sessions WHERE date >= ?`
+  ).get(weekAgo);
   const mostUsed = db.prepare(
     `SELECT td.id, td.name, td.slug, td.category, COUNT(*) as sessions
      FROM tool_sessions ts JOIN tool_definitions td ON td.id = ts.tool_id

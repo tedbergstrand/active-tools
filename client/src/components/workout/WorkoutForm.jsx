@@ -146,7 +146,7 @@ export function WorkoutForm({ initialData, workoutId }) {
 
   if (savedWorkoutId) {
     const exerciseCount = form.exercises.filter(ex => ex.exercise_id).length;
-    const setCount = form.exercises.reduce((sum, ex) => sum + (ex.sets?.filter(s => Object.values(s).some(v => v)).length || 0), 0);
+    const setCount = form.exercises.reduce((sum, ex) => sum + (ex.sets?.filter(s => Object.entries(s).some(([k, v]) => k !== '_key' && v != null && v !== '')).length || 0), 0);
     return (
       <WorkoutSaveOverlay
         workoutId={savedWorkoutId}

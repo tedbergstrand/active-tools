@@ -1,26 +1,7 @@
 import { Router } from 'express';
 import db from '../db/database.js';
 import { localDateISO } from '../lib/dates.js';
-
-const GRADE_ORDER = [
-  'VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9',
-  'V10', 'V11', 'V12', 'V13', 'V14', 'V15', 'V16', 'V17',
-  '5.5', '5.6', '5.7', '5.8', '5.9',
-  '5.10a', '5.10b', '5.10c', '5.10d',
-  '5.11a', '5.11b', '5.11c', '5.11d',
-  '5.12a', '5.12b', '5.12c', '5.12d',
-  '5.13a', '5.13b', '5.13c', '5.13d',
-  '5.14a', '5.14b', '5.14c', '5.14d',
-  '5.15a', '5.15b', '5.15c',
-];
-const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g, i]));
-function bestGrade(grades) {
-  if (!grades) return null;
-  return grades.split(',').reduce((best, g) => {
-    const r = GRADE_RANK[g] ?? -1;
-    return r > (GRADE_RANK[best] ?? -1) ? g : best;
-  }, null);
-}
+import { bestGrade } from '../lib/grades.js';
 
 const router = Router();
 
@@ -30,11 +11,14 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 function validateWorkoutBody(body) {
   const errors = [];
   if (body.category && !VALID_CATEGORIES.includes(body.category)) errors.push('Invalid category');
-  if (body.rpe != null && body.rpe !== '' && (Number(body.rpe) < 1 || Number(body.rpe) > 10)) errors.push('RPE must be 1-10');
+  if (body.rpe != null && body.rpe !== '') {
+    const r = Number(body.rpe);
+    if (Number.isNaN(r) || r < 1 || r > 10) errors.push('RPE must be 1-10');
+  }
   if (body.date && !DATE_RE.test(body.date)) errors.push('Date must be YYYY-MM-DD format');
-  if (body.duration_minutes != null && body.duration_minutes !== '' && body.duration_minutes !== null) {
+  if (body.duration_minutes != null && body.duration_minutes !== '') {
     const d = Number(body.duration_minutes);
-    if (d < 0 || d > 1440) errors.push('Duration must be 0-1440 minutes');
+    if (Number.isNaN(d) || d < 0 || d > 1440) errors.push('Duration must be 0-1440 minutes');
   }
   return errors;
 }
@@ -42,6 +26,10 @@ function validateWorkoutBody(body) {
 // Must be before /:id to avoid being caught by param route
 router.post('/rest-day', (req, res) => {
   const date = localDateISO();
+  const existing = db.prepare(
+    "SELECT id FROM workouts WHERE date = ? AND notes = 'Rest day'"
+  ).get(date);
+  if (existing) return res.status(409).json({ error: 'Rest day already logged today' });
   const result = db.prepare(`
     INSERT INTO workouts (category, date, duration_minutes, notes, rpe)
     VALUES ('traditional', ?, 0, 'Rest day', 1)

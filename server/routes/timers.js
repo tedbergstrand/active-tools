@@ -33,6 +33,8 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   const { name, mode, total_sets, phases } = req.body;
   if (!name || !mode) return res.status(400).json({ error: 'Name and mode required' });
+  const validModes = ['rest', 'hangboard', 'interval'];
+  if (!validModes.includes(mode)) return res.status(400).json({ error: 'Invalid mode' });
 
   const result = db.transaction(() => {
     const pid = db.prepare(
