@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Badge } from '../common/Badge.jsx';
 import { Card, CardContent } from '../common/Card.jsx';
 import { Button } from '../common/Button.jsx';
+import { ConfirmDialog } from '../common/ConfirmDialog.jsx';
 import { ExercisePicker } from '../workout/ExercisePicker.jsx';
 import { useToast } from '../common/Toast.jsx';
 import { CATEGORIES, DAYS_OF_WEEK } from '../../utils/constants.js';
 import { todayISO } from '../../utils/dates.js';
 import { plansApi } from '../../api/plans.js';
-import { Calendar, Target, Zap, Dumbbell, CheckCircle2, Circle, Plus, Trash2, Pencil, Save, X, Wand2 } from 'lucide-react';
+import { Calendar, Target, Zap, Dumbbell, CheckCircle2, Circle, Plus, Trash2, Pencil, Save, X, Wand2, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const categoryColors = { roped: 'blue', bouldering: 'amber', traditional: 'emerald', mixed: 'purple' };
@@ -202,6 +203,7 @@ export function PlanDetail({ plan, onActivate, onDeactivate, onRefetch, progress
   const [addingWeek, setAddingWeek] = useState(false);
   const [addingWorkoutWeekId, setAddingWorkoutWeekId] = useState(null);
   const [generating, setGenerating] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: null, id: null });
 
   if (!plan) return null;
 
@@ -219,7 +221,6 @@ export function PlanDetail({ plan, onActivate, onDeactivate, onRefetch, progress
   };
 
   const handleDeleteWeek = async (weekId) => {
-    if (!confirm('Delete this week and all its workouts?')) return;
     try {
       await plansApi.deleteWeek(weekId);
       toast.success('Week deleted');
@@ -230,7 +231,6 @@ export function PlanDetail({ plan, onActivate, onDeactivate, onRefetch, progress
   };
 
   const handleDeleteWorkout = async (workoutId) => {
-    if (!confirm('Delete this workout?')) return;
     try {
       await plansApi.deleteWorkout(workoutId);
       toast.success('Workout deleted');
@@ -240,10 +240,20 @@ export function PlanDetail({ plan, onActivate, onDeactivate, onRefetch, progress
     }
   };
 
+  const handleConfirmDelete = () => {
+    const { type, id } = deleteConfirm;
+    setDeleteConfirm({ show: false, type: null, id: null });
+    if (type === 'week') handleDeleteWeek(id);
+    else if (type === 'workout') handleDeleteWorkout(id);
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-3 mb-2">
+          <button onClick={() => navigate(-1)} className="p-1.5 -ml-1.5 hover:bg-[#2e3347] active:bg-[#3e4357] rounded-lg transition-colors" aria-label="Go back">
+            <ChevronLeft size={22} />
+          </button>
           <h1 className="text-2xl font-bold">{plan.name}</h1>
           {plan.is_active && <Badge color="green">Active</Badge>}
         </div>
@@ -303,8 +313,8 @@ export function PlanDetail({ plan, onActivate, onDeactivate, onRefetch, progress
                 className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
                 <Plus size={14} /> Add Workout
               </button>
-              <button onClick={() => handleDeleteWeek(week.id)}
-                className="text-sm text-gray-500 hover:text-red-400 flex items-center gap-1">
+              <button onClick={() => setDeleteConfirm({ show: true, type: 'week', id: week.id })}
+                className="p-2.5 text-gray-500 hover:text-red-400" aria-label="Delete week">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -335,8 +345,8 @@ export function PlanDetail({ plan, onActivate, onDeactivate, onRefetch, progress
                         <Dumbbell size={14} /> Log
                       </Button>
                     )}
-                    <button onClick={() => handleDeleteWorkout(workout.id)}
-                      className="p-1 text-gray-500 hover:text-red-400">
+                    <button onClick={() => setDeleteConfirm({ show: true, type: 'workout', id: workout.id })}
+                      className="p-2.5 text-gray-500 hover:text-red-400" aria-label="Delete workout">
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -370,6 +380,18 @@ export function PlanDetail({ plan, onActivate, onDeactivate, onRefetch, progress
           </CardContent>
         </Card>
       ))}
+
+      <ConfirmDialog
+        open={deleteConfirm.show}
+        onClose={() => setDeleteConfirm({ show: false, type: null, id: null })}
+        onConfirm={handleConfirmDelete}
+        title={deleteConfirm.type === 'week' ? 'Delete Week' : 'Delete Workout'}
+        message={deleteConfirm.type === 'week'
+          ? 'This will delete this week and all its workouts. This action cannot be undone.'
+          : 'This will permanently delete this workout. This action cannot be undone.'}
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

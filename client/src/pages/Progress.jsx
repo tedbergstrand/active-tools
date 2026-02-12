@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Header } from '../components/layout/Header.jsx';
 import { Tabs } from '../components/common/Tabs.jsx';
+import { Card } from '../components/common/Card.jsx';
 import { StatCard } from '../components/progress/StatCard.jsx';
 import { GradeChart } from '../components/progress/GradeChart.jsx';
 import { VolumeChart } from '../components/progress/VolumeChart.jsx';
@@ -12,7 +13,7 @@ import { ExerciseSelector } from '../components/progress/ExerciseSelector.jsx';
 import { ExerciseProgressChart } from '../components/progress/ExerciseProgressChart.jsx';
 import { TonnageChart } from '../components/progress/TonnageChart.jsx';
 import { useProgressSummary, useStreak, useTrends } from '../hooks/useProgress.js';
-import { Activity, Clock, Gauge, Layers, Flame } from 'lucide-react';
+import { Activity, Clock, Gauge, Layers, Flame, ChevronDown } from 'lucide-react';
 
 const rangeTabs = [
   { value: '30', label: '30 Days' },
@@ -35,6 +36,9 @@ export function Progress() {
   const { summary } = useProgressSummary({ days, ...(category ? { category } : {}) });
   const { streak } = useStreak();
   const { trends } = useTrends({ days, ...(category ? { category } : {}) });
+  const [expandedSections, setExpandedSections] = useState({ exerciseProgress: false, tonnage: false });
+
+  const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <div className="space-y-6">
@@ -74,14 +78,42 @@ export function Progress() {
 
       <FrequencyChart days={Number(days)} />
 
-      {/* Exercise-specific progression */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Exercise Progress</h2>
-        <ExerciseSelector value={selectedExercise} onChange={setSelectedExercise} />
-        {selectedExercise && <ExerciseProgressChart exerciseId={selectedExercise} days={Number(days)} />}
-      </div>
+      <Card>
+        <button
+          onClick={() => toggleSection('exerciseProgress')}
+          className="w-full px-5 py-4 flex items-center justify-between text-left"
+        >
+          <div>
+            <h2 className="text-lg font-semibold">Exercise Progress</h2>
+            <p className="text-sm text-gray-500">Track progression for individual exercises over time</p>
+          </div>
+          <ChevronDown size={20} className={`text-gray-400 transition-transform ${expandedSections.exerciseProgress ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.exerciseProgress && (
+          <div className="px-5 pb-5 space-y-4">
+            <ExerciseSelector value={selectedExercise} onChange={setSelectedExercise} />
+            {selectedExercise && <ExerciseProgressChart exerciseId={selectedExercise} days={Number(days)} />}
+          </div>
+        )}
+      </Card>
 
-      <TonnageChart days={Number(days)} />
+      <Card>
+        <button
+          onClick={() => toggleSection('tonnage')}
+          className="w-full px-5 py-4 flex items-center justify-between text-left"
+        >
+          <div>
+            <h2 className="text-lg font-semibold">Tonnage</h2>
+            <p className="text-sm text-gray-500">Total weight moved over time</p>
+          </div>
+          <ChevronDown size={20} className={`text-gray-400 transition-transform ${expandedSections.tonnage ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.tonnage && (
+          <div className="px-5 pb-5">
+            <TonnageChart days={Number(days)} />
+          </div>
+        )}
+      </Card>
 
       <PersonalRecords category={category || undefined} />
     </div>

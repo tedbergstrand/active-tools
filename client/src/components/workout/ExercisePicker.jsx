@@ -117,8 +117,8 @@ export function ExercisePicker({ value, onChange, category, className = '' }) {
       <button
         type="button"
         onClick={() => { setNewCategory(category || 'traditional'); setShowCreate(true); }}
-        className="px-2.5 py-2 bg-[#0f1117] border border-[#2e3347] rounded-lg text-gray-400 hover:text-blue-400 hover:border-blue-500/50 transition-colors"
-        title="Create new exercise"
+        className="min-h-[44px] min-w-[44px] px-2.5 py-2 bg-[#0f1117] border border-[#2e3347] rounded-lg text-gray-400 hover:text-blue-400 hover:border-blue-500/50 transition-colors flex items-center justify-center"
+        aria-label="Create new exercise"
       >
         <Plus size={16} />
       </button>

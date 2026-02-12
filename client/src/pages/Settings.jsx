@@ -6,7 +6,7 @@ import { Button } from '../components/common/Button.jsx';
 import { settingsApi } from '../api/settings.js';
 import { useSettings } from '../components/settings/SettingsContext.jsx';
 import { useToast } from '../components/common/Toast.jsx';
-import { Save, Download } from 'lucide-react';
+import { Save, Download, RotateCcw } from 'lucide-react';
 
 const gradeSystemOptions = [
   { value: 'yds', label: 'Yosemite Decimal System (5.10a)' },
@@ -28,6 +28,17 @@ const boolOptions = [
   { value: 'false', label: 'Disabled' },
 ];
 
+const profileLabels = {
+  experience_level: { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced', expert: 'Expert' },
+  primary_discipline: { roped: 'Roped Climbing', bouldering: 'Bouldering', traditional: 'Traditional', mixed: 'Mixed' },
+  training_goal: { strength: 'Strength', endurance: 'Endurance', technique: 'Technique', general: 'General Fitness', project: 'Project a Grade' },
+};
+
+function humanize(key, value) {
+  if (!value) return '—';
+  return profileLabels[key]?.[value] || value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ');
+}
+
 export function Settings() {
   const { refresh: refreshGlobal } = useSettings();
   const toast = useToast();
@@ -35,6 +46,7 @@ export function Settings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [resettingOnboarding, setResettingOnboarding] = useState(false);
 
   useEffect(() => {
     settingsApi.get().then(setSettings).catch(() => {
@@ -63,9 +75,52 @@ export function Settings() {
     }
   };
 
+  const handleRerunOnboarding = async () => {
+    setResettingOnboarding(true);
+    try {
+      await settingsApi.update({ onboarding_completed: 'false' });
+      refreshGlobal();
+    } catch (err) {
+      toast.error('Failed to reset onboarding');
+    } finally {
+      setResettingOnboarding(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-2xl">
       <Header title="Settings" />
+
+      <Card>
+        <CardHeader><h3 className="font-semibold">Climbing Profile</h3></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Experience Level</div>
+              <div className="text-sm text-gray-200">{humanize('experience_level', settings.experience_level)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Primary Discipline</div>
+              <div className="text-sm text-gray-200">{humanize('primary_discipline', settings.primary_discipline)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Max Roped Grade</div>
+              <div className="text-sm text-gray-200">{settings.max_roped_grade || '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Max Boulder Grade</div>
+              <div className="text-sm text-gray-200">{settings.max_boulder_grade || '—'}</div>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">Training Goal</div>
+            <div className="text-sm text-gray-200">{humanize('training_goal', settings.training_goal)}</div>
+          </div>
+          <Button variant="secondary" size="sm" onClick={handleRerunOnboarding} disabled={resettingOnboarding}>
+            <RotateCcw size={14} /> {resettingOnboarding ? 'Resetting...' : 'Re-run Setup Wizard'}
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><h3 className="font-semibold">Grading System</h3></CardHeader>

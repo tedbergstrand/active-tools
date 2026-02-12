@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout } from '../hooks/useWorkouts.js';
 import { Header } from '../components/layout/Header.jsx';
 import { Card, CardContent } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
+import { ConfirmDialog } from '../components/common/ConfirmDialog.jsx';
 import { PageLoading } from '../components/common/LoadingSpinner.jsx';
 import { CATEGORIES, SEND_TYPES } from '../utils/constants.js';
 import { formatDate } from '../utils/dates.js';
@@ -23,6 +25,7 @@ export function WorkoutDetail() {
   const { settings } = useSettings();
   const toast = useToast();
   const units = settings.units || 'metric';
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (loading) return <PageLoading />;
   if (!workout) return <div className="text-center py-12 text-gray-500">Workout not found</div>;
@@ -58,7 +61,6 @@ export function WorkoutDetail() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Delete this workout?')) return;
     try {
       await workoutsApi.delete(id);
       toast.success('Workout deleted');
@@ -70,11 +72,17 @@ export function WorkoutDetail() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Header title="Workout Detail">
+      <Header title="Workout Detail" showBack>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={handleUseAsTemplate}><Copy size={16} /> Template</Button>
-          <Button variant="secondary" size="sm" onClick={() => navigate(`/workout/${id}/edit`)}><Pencil size={16} /> Edit</Button>
-          <Button variant="danger" size="sm" onClick={handleDelete}><Trash2 size={16} /> Delete</Button>
+          <Button variant="secondary" size="sm" onClick={handleUseAsTemplate} aria-label="Use as template">
+            <Copy size={16} /> <span className="hidden sm:inline">Template</span>
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => navigate(`/workout/${id}/edit`)} aria-label="Edit workout">
+            <Pencil size={16} /> <span className="hidden sm:inline">Edit</span>
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => setShowDeleteConfirm(true)} aria-label="Delete workout">
+            <Trash2 size={16} /> <span className="hidden sm:inline">Delete</span>
+          </Button>
         </div>
       </Header>
 
@@ -128,6 +136,16 @@ export function WorkoutDetail() {
           </CardContent>
         </Card>
       ))}
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Delete Workout"
+        message="This will permanently delete this workout and all its data. This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

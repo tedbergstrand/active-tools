@@ -98,7 +98,7 @@ export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemo
         </>
       )}
 
-      <button onClick={() => onRemove(index)} className="p-2 text-gray-500 hover:text-red-400">
+      <button onClick={() => onRemove(index)} className="p-3 text-gray-500 hover:text-red-400" aria-label="Remove set">
         <Trash2 size={16} />
       </button>
     </div>

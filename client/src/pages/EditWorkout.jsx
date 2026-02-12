@@ -44,7 +44,7 @@ export function EditWorkout() {
 
   return (
     <div>
-      <Header title="Edit Workout" />
+      <Header title="Edit Workout" showBack />
       <WorkoutForm initialData={toFormShape(workout)} workoutId={id} />
     </div>
   );

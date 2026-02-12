@@ -38,7 +38,7 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className="fixed top-4 right-4 z-[100] space-y-2 max-w-sm">
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] space-y-2 w-full max-w-sm px-4">
         {toasts.map(t => {
           const Icon = ICONS[t.type] || Info;
           return (

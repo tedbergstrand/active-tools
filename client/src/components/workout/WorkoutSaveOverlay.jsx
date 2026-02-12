@@ -84,12 +84,17 @@ export function WorkoutSaveOverlay({ workoutId, exerciseCount, setCount, onDismi
         </div>
 
         {/* Actions */}
-        <Button onClick={() => navigate(`/workout/${workoutId}`)} className="w-full">
-          View Workout <ArrowRight size={16} />
-        </Button>
-        <button onClick={onDismiss} className="w-full text-sm text-gray-500 hover:text-gray-300 py-2">
-          Back to Dashboard
-        </button>
+        <div className="space-y-3">
+          <Button onClick={() => navigate(`/workout/${workoutId}`)} className="w-full">
+            View Workout <ArrowRight size={16} />
+          </Button>
+          <Button variant="secondary" onClick={() => navigate('/log')} className="w-full">
+            Log Another Workout
+          </Button>
+          <button onClick={onDismiss} className="w-full text-sm text-gray-500 hover:text-gray-300 py-2">
+            Back to Dashboard
+          </button>
+        </div>
       </div>
     </div>
   );

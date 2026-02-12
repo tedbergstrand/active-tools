@@ -11,7 +11,7 @@ import { RestTimerQuick } from '../timer/RestTimerQuick.jsx';
 import { useToast } from '../common/Toast.jsx';
 import { todayISO } from '../../utils/dates.js';
 import { WorkoutSaveOverlay } from './WorkoutSaveOverlay.jsx';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 const categoryOptions = [
   { value: 'roped', label: 'Roped Climbing' },
@@ -153,7 +153,7 @@ export function WorkoutForm({ initialData, workoutId }) {
         {form.exercises.map((ex, i) => (
           <div key={i} className="bg-[#1a1d27] border border-[#2e3347] rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <GripVertical size={16} className="text-gray-600" />
+              <span className="text-sm font-medium text-gray-500 w-6 text-center">#{i + 1}</span>
               <ExercisePicker
                 value={ex.exercise_id}
                 category={form.category}
