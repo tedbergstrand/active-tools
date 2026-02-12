@@ -26,6 +26,7 @@ export function WorkoutDetail() {
   const toast = useToast();
   const units = settings.units || 'metric';
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (loading) return <PageLoading />;
   if (!workout) return <div className="text-center py-12 text-gray-500">Workout not found</div>;
@@ -62,12 +63,15 @@ export function WorkoutDetail() {
 
   const handleDelete = async () => {
     setShowDeleteConfirm(false);
+    setDeleting(true);
     try {
       await workoutsApi.delete(id);
       toast.success('Workout deleted');
       navigate(-1);
     } catch (err) {
       toast.error('Failed to delete workout');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -81,8 +85,8 @@ export function WorkoutDetail() {
           <Button variant="secondary" size="sm" onClick={() => navigate(`/workout/${id}/edit`)} aria-label="Edit workout">
             <Pencil size={16} /> <span className="hidden sm:inline">Edit</span>
           </Button>
-          <Button variant="danger" size="sm" onClick={() => setShowDeleteConfirm(true)} aria-label="Delete workout">
-            <Trash2 size={16} /> <span className="hidden sm:inline">Delete</span>
+          <Button variant="danger" size="sm" onClick={() => setShowDeleteConfirm(true)} disabled={deleting} aria-label="Delete workout">
+            <Trash2 size={16} /> <span className="hidden sm:inline">{deleting ? 'Deleting...' : 'Delete'}</span>
           </Button>
         </div>
       </Header>

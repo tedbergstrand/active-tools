@@ -28,6 +28,9 @@ export function useCallout({ pools = {}, interval = 8, mode = 'timed', callouts 
     return text;
   }, [pools, callouts]);
 
+  const generateRef = useRef(generate);
+  useEffect(() => { generateRef.current = generate; }, [generate]);
+
   const next = useCallback(() => {
     return generate();
   }, [generate]);
@@ -35,11 +38,11 @@ export function useCallout({ pools = {}, interval = 8, mode = 'timed', callouts 
   const startAuto = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setIsActive(true);
-    generate();
+    generateRef.current();
     intervalRef.current = setInterval(() => {
-      generate();
+      generateRef.current();
     }, interval * 1000);
-  }, [generate, interval]);
+  }, [interval]);
 
   const stopAuto = useCallback(() => {
     setIsActive(false);

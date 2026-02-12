@@ -9,6 +9,13 @@ export function Modal({ open, onClose, title, children, className = '', preventB
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -20,7 +27,7 @@ export function Modal({ open, onClose, title, children, className = '', preventB
       <div className={`relative bg-[#1a1d27] border border-[#2e3347] rounded-t-2xl sm:rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto ${className}`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#2e3347]">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="p-2.5 -mr-1 hover:bg-[#2e3347] active:bg-[#3e4357] rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2.5 -mr-1 hover:bg-[#2e3347] active:bg-[#3e4357] rounded-lg transition-colors" aria-label="Close">
             <X size={20} />
           </button>
         </div>

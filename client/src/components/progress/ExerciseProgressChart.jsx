@@ -31,6 +31,7 @@ export function ExerciseProgressChart({ exerciseId, days = 365 }) {
 
   const metric = METRIC_CONFIG[exercise.default_metric] || METRIC_CONFIG.reps;
   const chartData = history.filter(h => h[metric.key] != null);
+  const gradeMap = new Map(history.map(h => [h.grade_rank, h.grade]));
 
   if (!chartData.length) return null;
 
@@ -44,17 +45,13 @@ export function ExerciseProgressChart({ exerciseId, days = 365 }) {
             <XAxis dataKey="date" tick={{ fill: '#9ca3af', fontSize: 12 }} />
             <YAxis
               tick={{ fill: '#9ca3af', fontSize: 12 }}
-              tickFormatter={exercise.default_metric === 'grade' ? (v) => {
-                const point = history.find(h => h.grade_rank === v);
-                return point?.grade || v;
-              } : undefined}
+              tickFormatter={exercise.default_metric === 'grade' ? (v) => gradeMap.get(v) || v : undefined}
             />
             <Tooltip
               contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid #2e3347', borderRadius: 8 }}
               formatter={(value) => {
                 if (exercise.default_metric === 'grade') {
-                  const point = history.find(h => h.grade_rank === value);
-                  return [point?.grade || value, metric.label];
+                  return [gradeMap.get(value) || value, metric.label];
                 }
                 return [value, metric.label];
               }}

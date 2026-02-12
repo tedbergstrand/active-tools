@@ -7,6 +7,7 @@ import { ExercisePicker } from '../workout/ExercisePicker.jsx';
 import { useToast } from '../common/Toast.jsx';
 import { CATEGORIES, DAYS_OF_WEEK } from '../../utils/constants.js';
 import { todayISO } from '../../utils/dates.js';
+import { parseNumericInput } from '../../utils/formatters.js';
 import { plansApi } from '../../api/plans.js';
 import { Calendar, Target, Zap, Dumbbell, CheckCircle2, Circle, Plus, Trash2, Pencil, Save, X, Wand2, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -106,13 +107,14 @@ function WorkoutExerciseEditor({ workout, onUpdate }) {
       target_grade: ex.target_grade || '',
       target_duration: ex.target_duration || '',
       notes: ex.notes || '',
+      _key: crypto.randomUUID(),
     }))
   );
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
   const addExercise = () => {
-    setExercises(prev => [...prev, { exercise_id: '', exercise_name: '', target_sets: '', target_reps: '', target_grade: '', target_duration: '', notes: '' }]);
+    setExercises(prev => [...prev, { exercise_id: '', exercise_name: '', target_sets: '', target_reps: '', target_grade: '', target_duration: '', notes: '', _key: crypto.randomUUID() }]);
   };
 
   const updateEx = (i, field, value) => {
@@ -129,7 +131,7 @@ function WorkoutExerciseEditor({ workout, onUpdate }) {
     setSaving(true);
     try {
       await plansApi.updateWorkout(workout.id, {
-        exercises: exercises.filter(ex => ex.exercise_id).map(ex => ({
+        exercises: exercises.filter(ex => ex.exercise_id).map(({ _key, ...ex }) => ({
           exercise_id: ex.exercise_id,
           target_sets: ex.target_sets ? Number(ex.target_sets) : null,
           target_reps: ex.target_reps ? Number(ex.target_reps) : null,
@@ -160,17 +162,17 @@ function WorkoutExerciseEditor({ workout, onUpdate }) {
   return (
     <div className="mt-3 space-y-2 border-t border-[#2e3347] pt-3">
       {exercises.map((ex, i) => (
-        <div key={i} className="flex items-start gap-2">
+        <div key={ex._key || i} className="flex items-start gap-2">
           <div className="flex-1 space-y-2">
             <ExercisePicker value={ex.exercise_id} onChange={(id, data) => {
               updateEx(i, 'exercise_id', id);
               if (data) updateEx(i, 'exercise_name', data.name);
             }} />
             <div className="flex gap-2">
-              <input type="number" value={ex.target_sets} onChange={e => updateEx(i, 'target_sets', e.target.value)}
+              <input type="number" value={ex.target_sets} onChange={e => updateEx(i, 'target_sets', parseNumericInput(e.target.value))}
                 placeholder="Sets" min="1" max="20"
                 className="w-20 bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-1 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500" />
-              <input type="number" value={ex.target_reps} onChange={e => updateEx(i, 'target_reps', e.target.value)}
+              <input type="number" value={ex.target_reps} onChange={e => updateEx(i, 'target_reps', parseNumericInput(e.target.value))}
                 placeholder="Reps" min="1" max="100"
                 className="w-20 bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-1 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500" />
               <input type="text" value={ex.target_grade} onChange={e => updateEx(i, 'target_grade', e.target.value)}

@@ -27,3 +27,7 @@ export function kgToLbs(kg) {
 export function lbsToKg(lbs) {
   return Math.round(lbs / 2.205 * 10) / 10;
 }
+
+export function parseNumericInput(value) {
+  return value === '' ? '' : Number(value);
+}

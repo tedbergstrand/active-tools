@@ -14,12 +14,16 @@ export function ExercisePicker({ value, onChange, category, className = '' }) {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const params = category ? { category } : {};
-    exercisesApi.list(params).then(setExercises);
+    exercisesApi.list(params).then(data => { if (!cancelled) setExercises(data); });
+    return () => { cancelled = true; };
   }, [category]);
 
   useEffect(() => {
-    exercisesApi.recent().then(setRecentIds).catch(() => {});
+    let cancelled = false;
+    exercisesApi.recent().then(data => { if (!cancelled) setRecentIds(data); }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   const grouped = exercises.reduce((acc, ex) => {

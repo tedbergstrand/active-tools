@@ -29,6 +29,7 @@ export function GradeChart({ category, days = 90 }) {
   });
 
   const data = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+  const gradeMap = new Map(data.map(d => [d.numeric, d.grade]));
 
   return (
     <Card>
@@ -39,10 +40,7 @@ export function GradeChart({ category, days = 90 }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#2e3347" />
             <XAxis dataKey="date" tick={{ fill: '#9ca3af', fontSize: 12 }} />
             <YAxis dataKey="numeric" tick={{ fill: '#9ca3af', fontSize: 12 }}
-              tickFormatter={(val) => {
-                const item = data.find(d => d.numeric === val);
-                return item?.grade || val;
-              }} />
+              tickFormatter={(val) => gradeMap.get(val) || val} />
             <Tooltip
               contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid #2e3347', borderRadius: 8 }}
               labelStyle={{ color: '#9ca3af' }}

@@ -16,7 +16,7 @@ export function formatRelative(dateStr) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const diff = Math.floor((now - d) / 86400000);
-  if (diff === 0) return 'Today';
+  if (diff <= 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   if (diff < 7) return `${diff} days ago`;
   if (diff < 30) return `${Math.floor(diff / 7)} weeks ago`;
@@ -24,7 +24,8 @@ export function formatRelative(dateStr) {
 }
 
 export function todayISO() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function getWeekNumber(dateStr) {

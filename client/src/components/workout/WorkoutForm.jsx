@@ -37,14 +37,25 @@ export function WorkoutForm({ initialData, workoutId }) {
   const toast = useToast();
   const isEditMode = Boolean(workoutId);
 
-  const [form, setForm] = useState(() => initialData ? { ...initialData } : {
-    category: urlCategory || 'roped',
-    date: todayISO(),
-    duration_minutes: '',
-    location: '',
-    notes: '',
-    rpe: '',
-    exercises: [],
+  const [form, setForm] = useState(() => {
+    if (initialData) {
+      return {
+        ...initialData,
+        exercises: (initialData.exercises || []).map(ex => ({
+          ...ex,
+          _key: crypto.randomUUID(),
+        })),
+      };
+    }
+    return {
+      category: urlCategory || 'roped',
+      date: todayISO(),
+      duration_minutes: '',
+      location: '',
+      notes: '',
+      rpe: '',
+      exercises: [],
+    };
   });
 
   const updateForm = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -52,7 +63,7 @@ export function WorkoutForm({ initialData, workoutId }) {
   const addExercise = () => {
     setForm(prev => ({
       ...prev,
-      exercises: [...prev.exercises, { exercise_id: '', exerciseData: null, sets: [{}], notes: '' }],
+      exercises: [...prev.exercises, { exercise_id: '', exerciseData: null, sets: [{}], notes: '', _key: crypto.randomUUID() }],
     }));
   };
 
@@ -90,7 +101,9 @@ export function WorkoutForm({ initialData, workoutId }) {
             exercise_id: ex.exercise_id,
             sort_order: i,
             notes: ex.notes,
-            sets: ex.sets.filter(s => Object.values(s).some(v => v)),
+            sets: ex.sets
+              .filter(s => Object.entries(s).some(([k, v]) => k !== '_key' && v))
+              .map(({ _key, ...rest }) => rest),
           })),
       };
       if (isEditMode) {
@@ -151,7 +164,7 @@ export function WorkoutForm({ initialData, workoutId }) {
 
       <div className="space-y-4">
         {form.exercises.map((ex, i) => (
-          <div key={i} className="bg-[#1a1d27] border border-[#2e3347] rounded-xl p-4 space-y-3">
+          <div key={ex._key || i} className="bg-[#1a1d27] border border-[#2e3347] rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-500 w-6 text-center">#{i + 1}</span>
               <ExercisePicker

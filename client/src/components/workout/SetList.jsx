@@ -15,14 +15,16 @@ export function SetList({ sets, exerciseType, gradeSystem, onChange }) {
 
   const addSet = () => {
     const lastSet = sets[sets.length - 1];
-    onChange([...sets, lastSet ? { ...lastSet } : {}]);
+    const newSet = lastSet ? { ...lastSet } : {};
+    newSet._key = crypto.randomUUID();
+    onChange([...sets, newSet]);
   };
 
   return (
     <div className="space-y-2">
       {sets.map((set, i) => (
         <SetRow
-          key={i}
+          key={set._key || i}
           set={set}
           index={i}
           exerciseType={exerciseType}

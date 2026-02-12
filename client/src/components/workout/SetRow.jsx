@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { GradePicker } from './GradePicker.jsx';
 import { SEND_TYPES, WALL_ANGLES, GRIP_TYPES } from '../../utils/constants.js';
+import { parseNumericInput } from '../../utils/formatters.js';
 
 export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemove }) {
   const update = (field, value) => onChange(index, { ...set, [field]: value });
@@ -44,7 +45,7 @@ export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemo
             type="number"
             placeholder="Secs"
             value={set.duration_seconds || ''}
-            onChange={e => update('duration_seconds', Number(e.target.value))}
+            onChange={e => update('duration_seconds', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-20"
           />
           <select
@@ -59,14 +60,14 @@ export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemo
             type="number"
             placeholder="Edge mm"
             value={set.edge_size_mm || ''}
-            onChange={e => update('edge_size_mm', Number(e.target.value))}
+            onChange={e => update('edge_size_mm', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-24"
           />
           <input
             type="number"
             placeholder="Weight kg"
             value={set.weight_kg || ''}
-            onChange={e => update('weight_kg', Number(e.target.value))}
+            onChange={e => update('weight_kg', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-24"
           />
         </>
@@ -78,21 +79,21 @@ export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemo
             type="number"
             placeholder="Reps"
             value={set.reps || ''}
-            onChange={e => update('reps', Number(e.target.value))}
+            onChange={e => update('reps', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-20"
           />
           <input
             type="number"
             placeholder="Weight kg"
             value={set.weight_kg || ''}
-            onChange={e => update('weight_kg', Number(e.target.value))}
+            onChange={e => update('weight_kg', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-24"
           />
           <input
             type="number"
             placeholder="Secs"
             value={set.duration_seconds || ''}
-            onChange={e => update('duration_seconds', Number(e.target.value))}
+            onChange={e => update('duration_seconds', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-20"
           />
         </>

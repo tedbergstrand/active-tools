@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { getAudioContext } from '../utils/audioContext.js';
 
 export function formatTimeAsSpeech(seconds) {
@@ -77,6 +77,12 @@ export function useSpeech() {
     if ('speechSynthesis' in window) {
       speechSynthesis.cancel();
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
+    };
   }, []);
 
   const supported = 'speechSynthesis' in window;

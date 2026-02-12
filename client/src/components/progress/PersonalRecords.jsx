@@ -44,20 +44,20 @@ export function PersonalRecords({ category }) {
     <Card>
       <CardHeader><h3 className="font-semibold flex items-center gap-2"><Trophy size={18} className="text-yellow-400" /> Personal Records</h3></CardHeader>
       <CardContent className="space-y-1">
-        {records.highestGrades.slice(0, 5).map((r, i) => (
-          <RecordRow key={i} icon={TrendingUp} label={r.exercise_name}
+        {records.highestGrades.slice(0, 5).map((r) => (
+          <RecordRow key={`grade-${r.exercise_name}-${r.date}`} icon={TrendingUp} label={r.exercise_name}
             value={`${r.grade} (${r.send_type})`} date={r.date} color="text-blue-400" />
         ))}
-        {records.maxWeights.slice(0, 5).map((r, i) => (
-          <RecordRow key={`w${i}`} icon={Weight} label={r.exercise_name}
+        {records.maxWeights.slice(0, 5).map((r) => (
+          <RecordRow key={`weight-${r.exercise_name}-${r.date}`} icon={Weight} label={r.exercise_name}
             value={formatWeight(r.max_weight, units)} date={r.date} color="text-emerald-400" />
         ))}
-        {records.maxReps.slice(0, 3).map((r, i) => (
-          <RecordRow key={`r${i}`} icon={Repeat} label={r.exercise_name}
+        {records.maxReps.slice(0, 3).map((r) => (
+          <RecordRow key={`reps-${r.exercise_name}-${r.date}`} icon={Repeat} label={r.exercise_name}
             value={`${r.max_reps} reps`} date={r.date} color="text-purple-400" />
         ))}
-        {records.maxDurations.slice(0, 3).map((r, i) => (
-          <RecordRow key={`d${i}`} icon={Timer} label={r.exercise_name}
+        {records.maxDurations.slice(0, 3).map((r) => (
+          <RecordRow key={`dur-${r.exercise_name}-${r.date}`} icon={Timer} label={r.exercise_name}
             value={formatSeconds(r.max_duration)} date={r.date} color="text-red-400" />
         ))}
       </CardContent>
