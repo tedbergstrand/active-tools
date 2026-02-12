@@ -8,7 +8,7 @@ import { useProgressSummary } from '../hooks/useProgress.js';
 import { Plus, Activity, Clock, TrendingUp, Dumbbell } from 'lucide-react';
 import { EmptyState } from '../components/common/EmptyState.jsx';
 
-export function TraditionalExercise() {
+export default function TraditionalExercise() {
   const navigate = useNavigate();
   const { workouts, loading } = useWorkouts({ category: 'traditional', limit: 10 });
   const { summary } = useProgressSummary({ category: 'traditional', days: 30 });

@@ -23,7 +23,7 @@ const difficultyOptions = [
   ...DIFFICULTIES,
 ];
 
-export function CreatePlan() {
+export default function CreatePlan() {
   const navigate = useNavigate();
   const toast = useToast();
   const { settings } = useSettings();

@@ -10,7 +10,7 @@ import { useToast } from '../components/common/Toast.jsx';
 import { timersApi } from '../api/timers.js';
 import { Timer, Clock, Dumbbell, Zap } from 'lucide-react';
 
-export function TimerPage() {
+export default function TimerPage() {
   const timer = useTimerContext();
   const toast = useToast();
   const [presets, setPresets] = useState([]);

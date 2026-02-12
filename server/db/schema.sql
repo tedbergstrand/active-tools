@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS settings (
 
 CREATE INDEX IF NOT EXISTS idx_workouts_category ON workouts(category);
 CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts(date);
+CREATE INDEX IF NOT EXISTS idx_workouts_category_date ON workouts(category, date);
 CREATE INDEX IF NOT EXISTS idx_workout_exercises_workout ON workout_exercises(workout_id);
 CREATE INDEX IF NOT EXISTS idx_workout_sets_exercise ON workout_sets(workout_exercise_id);
 CREATE INDEX IF NOT EXISTS idx_exercises_category ON exercises(category);
@@ -118,6 +119,7 @@ CREATE INDEX IF NOT EXISTS idx_workout_sets_grade ON workout_sets(grade);
 CREATE INDEX IF NOT EXISTS idx_workouts_tool_session ON workouts(tool_session_id);
 CREATE INDEX IF NOT EXISTS idx_workouts_plan_workout ON workouts(plan_workout_id);
 CREATE INDEX IF NOT EXISTS idx_plans_active ON plans(is_active);
+CREATE INDEX IF NOT EXISTS idx_plan_weeks_plan ON plan_weeks(plan_id);
 CREATE INDEX IF NOT EXISTS idx_plan_workouts_week ON plan_workouts(plan_week_id);
 CREATE INDEX IF NOT EXISTS idx_plan_workout_exercises_workout ON plan_workout_exercises(plan_workout_id);
 
@@ -152,6 +154,7 @@ CREATE TABLE IF NOT EXISTS tool_sessions (
 CREATE INDEX IF NOT EXISTS idx_tool_definitions_category ON tool_definitions(category);
 CREATE INDEX IF NOT EXISTS idx_tool_definitions_slug ON tool_definitions(slug);
 CREATE INDEX IF NOT EXISTS idx_tool_sessions_tool_date ON tool_sessions(tool_id, date);
+CREATE INDEX IF NOT EXISTS idx_tool_sessions_date ON tool_sessions(date);
 
 -- Tool favorites
 CREATE TABLE IF NOT EXISTS tool_favorites (

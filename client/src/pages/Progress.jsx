@@ -29,7 +29,7 @@ const categoryTabs = [
   { value: 'traditional', label: 'Training' },
 ];
 
-export function Progress() {
+export default function Progress() {
   const [days, setDays] = useState('90');
   const [category, setCategory] = useState('');
   const [selectedExercise, setSelectedExercise] = useState(null);

@@ -35,7 +35,7 @@ function toFormShape(workout) {
   };
 }
 
-export function EditWorkout() {
+export default function EditWorkout() {
   const { id } = useParams();
   const { workout, loading } = useWorkout(id);
 

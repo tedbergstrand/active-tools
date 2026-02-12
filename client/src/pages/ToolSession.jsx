@@ -14,7 +14,7 @@ import { formatRelative } from '../utils/dates.js';
 
 const difficultyColors = { beginner: 'green', intermediate: 'amber', advanced: 'red' };
 
-export function ToolSession() {
+export default function ToolSession() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const toolSession = useToolSession();

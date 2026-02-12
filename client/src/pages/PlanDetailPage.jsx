@@ -6,7 +6,7 @@ import { usePlan } from '../hooks/usePlans.js';
 import { plansApi } from '../api/plans.js';
 import { useToast } from '../components/common/Toast.jsx';
 
-export function PlanDetailPage() {
+export default function PlanDetailPage() {
   const { id } = useParams();
   const { plan, loading, refetch } = usePlan(id);
   const toast = useToast();

@@ -18,7 +18,7 @@ import { useToast } from '../components/common/Toast.jsx';
 
 const categoryColors = { roped: 'blue', bouldering: 'amber', traditional: 'emerald' };
 
-export function WorkoutDetail() {
+export default function WorkoutDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { workout, loading } = useWorkout(id);

@@ -28,7 +28,7 @@ const CATEGORIES = [
 ];
 
 
-export function TrainingTools() {
+export default function TrainingTools() {
   const navigate = useNavigate();
   const [tools, setTools] = useState([]);
   const [loading, setLoading] = useState(true);

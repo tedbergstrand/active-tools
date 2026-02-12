@@ -9,7 +9,7 @@ import { useProgressSummary } from '../hooks/useProgress.js';
 import { Plus, Activity, Clock, TrendingUp, Mountain } from 'lucide-react';
 import { EmptyState } from '../components/common/EmptyState.jsx';
 
-export function RopedClimbing() {
+export default function RopedClimbing() {
   const navigate = useNavigate();
   const { workouts, loading } = useWorkouts({ category: 'roped', limit: 10 });
   const { summary } = useProgressSummary({ category: 'roped', days: 30 });

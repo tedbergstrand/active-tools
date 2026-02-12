@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { TimerProvider } from './components/timer/TimerContext.jsx';
 import { ToolSessionProvider } from './components/tools/ToolSessionContext.jsx';
@@ -6,21 +7,22 @@ import { ToastProvider } from './components/common/Toast.jsx';
 import { ErrorBoundary } from './components/common/ErrorBoundary.jsx';
 import { AppShell } from './components/layout/AppShell.jsx';
 import { Dashboard } from './pages/Dashboard.jsx';
-import { RopedClimbing } from './pages/RopedClimbing.jsx';
-import { Bouldering } from './pages/Bouldering.jsx';
-import { TraditionalExercise } from './pages/TraditionalExercise.jsx';
-import { LogWorkout } from './pages/LogWorkout.jsx';
-import { WorkoutDetail } from './pages/WorkoutDetail.jsx';
-import { EditWorkout } from './pages/EditWorkout.jsx';
-import { WorkoutHistory } from './pages/WorkoutHistory.jsx';
-import { CreatePlan } from './pages/CreatePlan.jsx';
-import { Plans } from './pages/Plans.jsx';
-import { PlanDetailPage } from './pages/PlanDetailPage.jsx';
-import { Progress } from './pages/Progress.jsx';
-import { TimerPage } from './pages/TimerPage.jsx';
-import { Settings } from './pages/Settings.jsx';
-import { TrainingTools } from './pages/TrainingTools.jsx';
-import { ToolSession } from './pages/ToolSession.jsx';
+
+const RopedClimbing = lazy(() => import('./pages/RopedClimbing.jsx'));
+const Bouldering = lazy(() => import('./pages/Bouldering.jsx'));
+const TraditionalExercise = lazy(() => import('./pages/TraditionalExercise.jsx'));
+const LogWorkout = lazy(() => import('./pages/LogWorkout.jsx'));
+const WorkoutDetail = lazy(() => import('./pages/WorkoutDetail.jsx'));
+const EditWorkout = lazy(() => import('./pages/EditWorkout.jsx'));
+const WorkoutHistory = lazy(() => import('./pages/WorkoutHistory.jsx'));
+const CreatePlan = lazy(() => import('./pages/CreatePlan.jsx'));
+const Plans = lazy(() => import('./pages/Plans.jsx'));
+const PlanDetailPage = lazy(() => import('./pages/PlanDetailPage.jsx'));
+const Progress = lazy(() => import('./pages/Progress.jsx'));
+const TimerPage = lazy(() => import('./pages/TimerPage.jsx'));
+const Settings = lazy(() => import('./pages/Settings.jsx'));
+const TrainingTools = lazy(() => import('./pages/TrainingTools.jsx'));
+const ToolSession = lazy(() => import('./pages/ToolSession.jsx'));
 
 export default function App() {
   return (
@@ -30,6 +32,7 @@ export default function App() {
       <TimerProvider>
         <ToolSessionProvider>
           <ErrorBoundary>
+          <Suspense fallback={null}>
           <Routes>
             <Route element={<AppShell />}>
               <Route path="/" element={<Dashboard />} />
@@ -50,6 +53,7 @@ export default function App() {
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Routes>
+          </Suspense>
           </ErrorBoundary>
         </ToolSessionProvider>
       </TimerProvider>

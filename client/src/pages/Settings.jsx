@@ -39,7 +39,7 @@ function humanize(key, value) {
   return profileLabels[key]?.[value] || value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ');
 }
 
-export function Settings() {
+export default function Settings() {
   const { refresh: refreshGlobal } = useSettings();
   const toast = useToast();
   const [settings, setSettings] = useState({});

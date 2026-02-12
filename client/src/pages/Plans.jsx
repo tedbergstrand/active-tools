@@ -18,7 +18,7 @@ const categoryTabs = [
   { value: 'traditional', label: 'Training' },
 ];
 
-export function Plans() {
+export default function Plans() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('');
   const { plans, loading, refetch } = usePlans(filter ? { category: filter } : {});

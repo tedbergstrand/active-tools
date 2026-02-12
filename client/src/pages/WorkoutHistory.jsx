@@ -27,7 +27,7 @@ const categoryTabs = [
   { value: 'traditional', label: 'Training' },
 ];
 
-export function WorkoutHistory() {
+export default function WorkoutHistory() {
   const navigate = useNavigate();
   const toast = useToast();
   const [view, setView] = useState('workouts');

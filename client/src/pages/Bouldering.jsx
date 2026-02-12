@@ -9,7 +9,7 @@ import { useProgressSummary } from '../hooks/useProgress.js';
 import { Plus, Activity, Clock, TrendingUp, Gem } from 'lucide-react';
 import { EmptyState } from '../components/common/EmptyState.jsx';
 
-export function Bouldering() {
+export default function Bouldering() {
   const navigate = useNavigate();
   const { workouts, loading } = useWorkouts({ category: 'bouldering', limit: 10 });
   const { summary } = useProgressSummary({ category: 'bouldering', days: 30 });

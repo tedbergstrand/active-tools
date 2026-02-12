@@ -10,7 +10,7 @@ import { formatDate } from '../utils/dates.js';
 import { todayISO } from '../utils/dates.js';
 import { Copy, X } from 'lucide-react';
 
-export function LogWorkout() {
+export default function LogWorkout() {
   const location = useLocation();
   const [formKey, setFormKey] = useState(0);
   const [initialData, setInitialData] = useState(location.state?.initialData || null);
