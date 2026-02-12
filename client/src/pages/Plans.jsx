@@ -8,6 +8,7 @@ import { PageLoading } from '../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../components/common/EmptyState.jsx';
 import { usePlans } from '../hooks/usePlans.js';
 import { plansApi } from '../api/plans.js';
+import { useToast } from '../components/common/Toast.jsx';
 import { ClipboardList, Plus } from 'lucide-react';
 
 const categoryTabs = [
@@ -21,15 +22,24 @@ export function Plans() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('');
   const { plans, loading, refetch } = usePlans(filter ? { category: filter } : {});
+  const toast = useToast();
 
   const handleActivate = async (id) => {
-    await plansApi.activate(id);
-    refetch();
+    try {
+      await plansApi.activate(id);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || 'Failed to activate plan');
+    }
   };
 
   const handleDeactivate = async (id) => {
-    await plansApi.deactivate(id);
-    refetch();
+    try {
+      await plansApi.deactivate(id);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || 'Failed to deactivate plan');
+    }
   };
 
   if (loading) return <PageLoading />;

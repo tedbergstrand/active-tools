@@ -150,7 +150,7 @@ export function Dashboard() {
         <StatCard icon={Clock} label="Total Time" value={summary?.totalDuration ? `${Math.round(summary.totalDuration / 60)}h` : '—'} sublabel="Last 30 days" color="text-emerald-400" />
         <StatCard icon={Gauge} label="Avg RPE" value={summary?.avgRpe ?? '—'} sublabel="Last 30 days" color="text-amber-400" />
         {streak && streak.current > 0
-          ? <StatCard icon={Flame} label="Streak" value={`${streak.current}d`} sublabel={`Best: ${streak.longest}d`} color="text-orange-400" />
+          ? <StatCard icon={Flame} label="Streak" value={`${streak.current}d`} sublabel={`Best: ${streak?.longest ?? 0}d`} color="text-orange-400" />
           : <StatCard icon={Layers} label="Total Sets" value={summary?.totalSets ?? '—'} sublabel="Last 30 days" color="text-purple-400" />
         }
       </div>

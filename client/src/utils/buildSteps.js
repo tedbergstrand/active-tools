@@ -9,7 +9,7 @@ export function buildSteps(tool, config) {
 
   if (tt === 'timer') {
     if (config.exercises?.length) {
-      const sets = config.sets || 1;
+      const sets = config.sets ?? 1;
       for (let s = 0; s < sets; s++) {
         if (s > 0 && config.restBetweenSets) {
           steps.push({ type: 'rest', duration: config.restBetweenSets, announce: `Set ${s} complete. Rest.` });
@@ -22,7 +22,7 @@ export function buildSteps(tool, config) {
         });
       }
     } else if (config.phases?.length) {
-      const sets = config.sets || 1;
+      const sets = config.sets ?? 1;
       for (let s = 0; s < sets; s++) {
         if (s > 0 && config.restBetween) {
           steps.push({ type: 'rest', duration: config.restBetween, announce: `Set ${s} complete. Rest.` });
@@ -33,18 +33,21 @@ export function buildSteps(tool, config) {
       }
     } else if (config.startWork != null && config.startRest != null) {
       let work = config.startWork, rest = config.startRest, round = 1;
-      while (work >= (config.minWork || 30)) {
+      const minWork = config.minWork ?? 30;
+      const workDecrement = config.workDecrement || 30; // must be >0 to avoid infinite loop
+      const restDecrement = config.restDecrement ?? 20;
+      while (work >= minWork) {
         steps.push({
           type: 'active', duration: work,
           label: `Round ${round} — Climb`,
           announce: `Round ${round}. Climb for ${formatTimeAsSpeech(work)}.`,
         });
-        const nextWork = work - (config.workDecrement || 30);
-        if (nextWork >= (config.minWork || 30)) {
+        const nextWork = work - workDecrement;
+        if (nextWork >= minWork) {
           steps.push({ type: 'rest', duration: rest, announce: 'Rest.' });
         }
         work = nextWork;
-        rest = Math.max(0, rest - (config.restDecrement || 20));
+        rest = Math.max(0, rest - restDecrement);
         round++;
       }
     } else if (config.totalMinutes && config.intervalSeconds) {
@@ -65,7 +68,7 @@ export function buildSteps(tool, config) {
         ? { interval: config.pumpCheckInterval, text: config.pumpCheckText }
         : null;
       steps.push({
-        type: 'active', duration: config.duration || 600,
+        type: 'active', duration: config.duration ?? 600,
         label: 'Active', announce: 'Go!', reminder,
       });
     }
@@ -79,23 +82,23 @@ export function buildSteps(tool, config) {
       steps.push({
         type: 'variable-metronome', label: tool.name, announce: 'Go! Starting slow.',
         pattern: 'surge-cruise', slowBpm: config.slowBpm, fastBpm: config.fastBpm,
-        slowMoves: config.slowMoves || 6, fastMoves: config.fastMoves || 4,
+        slowMoves: config.slowMoves ?? 6, fastMoves: config.fastMoves ?? 4,
       });
     } else if (config.startBpm && config.endBpm) {
       steps.push({
         type: 'variable-metronome', label: tool.name, announce: `Go! Starting at ${config.startBpm} BPM.`,
         pattern: 'deceleration', startBpm: config.startBpm, endBpm: config.endBpm,
-        decrementPerPhase: config.decrementPerPhase || 10, movesPerPhase: config.movesPerPhase || 5,
+        decrementPerPhase: config.decrementPerPhase ?? 10, movesPerPhase: config.movesPerPhase ?? 5,
       });
     } else {
       steps.push({
-        type: 'metronome', duration: config.duration || null,
-        bpm: config.bpm || 60, label: tool.name, announce: 'Go!',
+        type: 'metronome', duration: config.duration ?? null,
+        bpm: config.bpm ?? 60, label: tool.name, announce: 'Go!',
       });
     }
   } else if (tt === 'session') {
     if (config.timePerProblem) {
-      const n = config.problems || 4;
+      const n = config.problems ?? 4;
       for (let p = 0; p < n; p++) {
         if (config.observationTime) {
           steps.push({
@@ -141,7 +144,7 @@ export function buildSteps(tool, config) {
             steps.push({ type: 'rest', duration: config.restBetweenSets, announce: 'Rest between sets.' });
           }
           steps.push({
-            type: 'active', duration: config.setDuration || 30,
+            type: 'active', duration: config.setDuration ?? 30,
             label: `${exList[e]} — Set ${si + 1} of ${config.setsPerExercise}`,
             announce: si === 0 ? `${exList[e]}. Set 1. Go!` : `Set ${si + 1}. Go!`,
           });
@@ -154,6 +157,7 @@ export function buildSteps(tool, config) {
         }
         steps.push({
           type: 'active', duration: config.setDuration,
+
           label: `Set ${si + 1} of ${config.sets}`,
           announce: `Set ${si + 1}. Go!`,
         });
@@ -213,14 +217,14 @@ export function buildSteps(tool, config) {
             steps.push({ type: 'rest', duration: config.restBetweenProblems, announce: 'Rest.' });
           }
           steps.push({
-            type: 'active', duration: config.durationPerProblem || 240,
+            type: 'active', duration: config.durationPerProblem ?? 240,
             label: `Tier ${t + 1} — Problem ${p + 1} of ${perTier[t]}`,
             announce: `Tier ${t + 1}, problem ${p + 1}. Go!`,
           });
         }
       }
     } else if (config.problems && config.problemDuration) {
-      const circuits = config.circuits || 1;
+      const circuits = config.circuits ?? 1;
       for (let c = 0; c < circuits; c++) {
         if (c > 0) {
           steps.push({ type: 'rest', duration: 30, announce: 'Circuit complete. Brief rest.' });
@@ -247,7 +251,7 @@ export function buildSteps(tool, config) {
   // Fallback: if we only have the countdown step, the config didn't match any pattern.
   // Create a generic timed session so the user doesn't see a 5-second session that ends.
   if (steps.length === 1) {
-    const fallbackDuration = config.duration || config.sessionDuration || 600;
+    const fallbackDuration = config.duration ?? config.sessionDuration ?? 600;
     console.warn(`[buildSteps] No step pattern matched for tool "${tool.name}" (type: ${tt}). Using ${fallbackDuration}s fallback.`);
     steps.push({
       type: 'active', duration: fallbackDuration,

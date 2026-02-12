@@ -1,5 +1,5 @@
 export function formatDuration(minutes) {
-  if (!minutes) return '—';
+  if (minutes == null) return '—';
   if (minutes < 60) return `${minutes}m`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
