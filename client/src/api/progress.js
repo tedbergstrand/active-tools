@@ -49,4 +49,5 @@ export const progressApi = {
     return api.get(`/progress/volume-detail${qs ? '?' + qs : ''}`, options);
   },
   exercisesWithData: (options) => api.get('/progress/exercises-with-data', options),
+  dashboard: (options) => api.get('/progress/dashboard', options),
 };

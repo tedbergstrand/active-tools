@@ -19,6 +19,12 @@ export function FrequencyChart({ days = 90 }) {
     );
   }
 
+  // Pre-index frequency data by date for O(1) lookups
+  const byDate = {};
+  for (const f of frequency) {
+    (byDate[f.date] ??= []).push(f);
+  }
+
   // Build a calendar-like grid for the last N days
   const today = new Date();
   const cells = [];
@@ -26,8 +32,7 @@ export function FrequencyChart({ days = 90 }) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split('T')[0];
-    const sessions = frequency.filter(f => f.date === dateStr);
-    cells.push({ date: dateStr, sessions });
+    cells.push({ date: dateStr, sessions: byDate[dateStr] || [] });
   }
 
   return (

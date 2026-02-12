@@ -24,4 +24,5 @@ export const toolsApi = {
   removeFavorite: (toolId) => api.delete(`/tools/favorites/${toolId}`),
   recentTools: () => api.get('/tools/sessions/recent-tools'),
   stats: () => api.get('/tools/sessions/stats'),
+  suggestions: () => api.get('/tools/suggestions'),
 };

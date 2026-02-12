@@ -3,18 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { plansApi } from '../../api/plans.js';
 import { Zap } from 'lucide-react';
 
-export function ActivePlanBanner() {
-  const [plan, setPlan] = useState(null);
+export function ActivePlanBanner({ plan: propPlan }) {
+  const [fetchedPlan, setFetchedPlan] = useState(null);
   const navigate = useNavigate();
 
+  // Only fetch if no plan prop was provided (standalone usage outside Dashboard)
   useEffect(() => {
+    if (propPlan !== undefined) return;
     let cancelled = false;
     plansApi.list().then(plans => {
-      if (!cancelled) setPlan(plans.find(p => p.is_active) || null);
+      if (!cancelled) setFetchedPlan(plans.find(p => p.is_active) || null);
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [propPlan]);
 
+  const plan = propPlan !== undefined ? propPlan : fetchedPlan;
   if (!plan) return null;
 
   return (

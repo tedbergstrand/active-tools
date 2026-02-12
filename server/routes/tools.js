@@ -142,6 +142,17 @@ router.post('/sessions', (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid });
 });
 
+// GET /api/tools/suggestions — favorites + recent + all tools in one call
+router.get('/suggestions', (req, res) => {
+  const favIds = db.prepare('SELECT tool_id FROM tool_favorites ORDER BY created_at DESC').all().map(r => r.tool_id);
+  const recentIds = db.prepare(
+    `SELECT DISTINCT tool_id, MAX(created_at) as last_used
+     FROM tool_sessions GROUP BY tool_id ORDER BY last_used DESC LIMIT 10`
+  ).all().map(r => r.tool_id);
+  const allTools = db.prepare('SELECT * FROM tool_definitions ORDER BY category, name').all();
+  res.json({ favoriteIds: favIds, recentIds, tools: allTools });
+});
+
 // GET /api/tools/:slug — get single tool by slug (must be last due to wildcard)
 router.get('/:slug', (req, res) => {
   const tool = db.prepare('SELECT * FROM tool_definitions WHERE slug = ?').get(req.params.slug);

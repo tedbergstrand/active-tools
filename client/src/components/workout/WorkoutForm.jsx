@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { workoutsApi } from '../../api/workouts.js';
+import { exercisesApi } from '../../api/exercises.js';
 import { useSettings } from '../settings/SettingsContext.jsx';
 import { Input, Textarea } from '../common/Input.jsx';
 import { Select } from '../common/Select.jsx';
@@ -37,6 +38,9 @@ export function WorkoutForm({ initialData, workoutId }) {
   const toast = useToast();
   const isEditMode = Boolean(workoutId);
 
+  const [allExercises, setAllExercises] = useState([]);
+  const [recentExerciseIds, setRecentExerciseIds] = useState([]);
+
   const [form, setForm] = useState(() => {
     if (initialData) {
       return {
@@ -57,6 +61,18 @@ export function WorkoutForm({ initialData, workoutId }) {
       exercises: [],
     };
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = form.category ? { category: form.category } : {};
+    Promise.all([
+      exercisesApi.list(params),
+      exercisesApi.recent(),
+    ]).then(([exs, recent]) => {
+      if (!cancelled) { setAllExercises(exs); setRecentExerciseIds(recent); }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [form.category]);
 
   const updateForm = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -170,6 +186,8 @@ export function WorkoutForm({ initialData, workoutId }) {
               <ExercisePicker
                 value={ex.exercise_id}
                 category={form.category}
+                exercises={allExercises}
+                recentIds={recentExerciseIds}
                 onChange={(id, data) => {
                   updateExercise(i, { exercise_id: id, exerciseData: data });
                 }}

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, Info, Heart, Calendar } from 'lucide-react';
 import { Button } from '../common/Button.jsx';
-import { useRecovery } from '../../hooks/useProgress.js';
 import { workoutsApi } from '../../api/workouts.js';
 
 const STATUS_CONFIG = {
@@ -11,11 +10,10 @@ const STATUS_CONFIG = {
   suggest_deload: { icon: Calendar, border: 'border-blue-500/30', bg: 'bg-blue-500/10', iconColor: 'text-blue-400', showRestButton: false },
 };
 
-export function RecoveryNudge() {
-  const { recovery, loading, refetch } = useRecovery();
+export function RecoveryNudge({ recovery }) {
   const [logging, setLogging] = useState(false);
 
-  if (loading || !recovery || recovery.status === 'good') return null;
+  if (!recovery || recovery.status === 'good') return null;
 
   const config = STATUS_CONFIG[recovery.status];
   if (!config) return null;
@@ -26,7 +24,6 @@ export function RecoveryNudge() {
     setLogging(true);
     try {
       await workoutsApi.logRestDay();
-      refetch();
     } catch {
       // silent fail
     } finally {

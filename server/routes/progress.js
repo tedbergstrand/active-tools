@@ -642,4 +642,102 @@ router.get('/exercises-with-data', (req, res) => {
   res.json(rows);
 });
 
+// Composite dashboard endpoint: summary + streak + recovery in one call
+router.get('/dashboard', (req, res) => {
+  const since = daysAgoISO(30);
+
+  // Summary (30 days)
+  const stats = db.prepare(`
+    SELECT COUNT(*) as totalWorkouts,
+      COALESCE(SUM(duration_minutes), 0) as totalDuration,
+      ROUND(AVG(CASE WHEN rpe IS NOT NULL THEN rpe END), 1) as avgRpe
+    FROM workouts WHERE date >= ?
+  `).get(since);
+
+  const totalSets = db.prepare(`
+    SELECT COUNT(*) as count FROM workout_sets ws
+    JOIN workout_exercises we ON we.id = ws.workout_exercise_id
+    JOIN workouts w ON w.id = we.workout_id
+    WHERE w.date >= ?
+  `).get(since).count;
+
+  const toolSessions = db.prepare(
+    `SELECT COUNT(*) as count, COALESCE(SUM(duration_seconds), 0) as seconds
+     FROM tool_sessions WHERE date >= ?`
+  ).get(since);
+
+  const summary = {
+    totalWorkouts: stats.totalWorkouts, totalDuration: stats.totalDuration,
+    avgRpe: stats.avgRpe, totalSets, days: 30,
+    toolSessions: toolSessions.count,
+    toolMinutes: Math.round(toolSessions.seconds / 60),
+  };
+
+  // Streak
+  const dates = db.prepare(
+    `SELECT DISTINCT date FROM (
+       SELECT date FROM workouts UNION SELECT date FROM tool_sessions
+     ) ORDER BY date DESC`
+  ).all().map(r => r.date);
+
+  let current = 0, longest = 0;
+  if (dates.length > 0) {
+    const today = localDateISO();
+    const yesterday = daysAgoISO(1);
+    if (dates[0] === today || dates[0] === yesterday) {
+      let checkDate = new Date(dates[0]);
+      const dateSet = new Set(dates);
+      while (dateSet.has(checkDate.toISOString().split('T')[0])) {
+        current++;
+        checkDate = new Date(checkDate.getTime() - 86400000);
+      }
+    }
+    let streak = 1;
+    for (let i = 1; i < dates.length; i++) {
+      const diff = (new Date(dates[i - 1]) - new Date(dates[i])) / 86400000;
+      if (diff === 1) streak++;
+      else { longest = Math.max(longest, streak); streak = 1; }
+    }
+    longest = Math.max(longest, streak);
+  }
+
+  // Recovery (inline, same logic as /recovery but without early returns)
+  const today = localDateISO();
+  const recentWorkouts = db.prepare(`
+    SELECT date, rpe, duration_minutes FROM workouts
+    WHERE date >= date(?, '-30 days') AND NOT (duration_minutes = 0 AND rpe = 1)
+    ORDER BY date DESC
+  `).all(today);
+
+  let recovery = { status: 'good', nudge: null };
+  if (recentWorkouts.length === 0) {
+    recovery = { status: 'welcome_back', nudge: 'Welcome! Ready to start training?' };
+  } else {
+    const daysSinceTraining = Math.floor((Date.now() - new Date(recentWorkouts[0].date).getTime()) / 86400000);
+    if (daysSinceTraining >= 3) {
+      recovery = { status: 'welcome_back', nudge: `Welcome back! It's been ${daysSinceTraining} days since your last session.` };
+    } else {
+      const trainingDates = [...new Set(recentWorkouts.map(w => w.date))].sort().reverse();
+      let consecutive = 0;
+      let cd = new Date(trainingDates[0]);
+      const ds = new Set(trainingDates);
+      while (ds.has(cd.toISOString().split('T')[0])) { consecutive++; cd = new Date(cd.getTime() - 86400000); }
+
+      let highRpeStreak = 0;
+      for (const date of trainingDates) {
+        const dayW = recentWorkouts.filter(w => w.date === date && w.rpe != null);
+        if (dayW.length === 0) break;
+        if (dayW.reduce((s, w) => s + w.rpe, 0) / dayW.length >= 8) highRpeStreak++;
+        else break;
+      }
+
+      if (consecutive >= 7) recovery = { status: 'needs_rest', nudge: `You've trained ${consecutive} days straight. Your body needs recovery to get stronger.` };
+      else if (highRpeStreak >= 3) recovery = { status: 'needs_rest', nudge: `${highRpeStreak} consecutive high-intensity sessions (RPE 8+). Consider an easy day or rest.` };
+      else if (consecutive >= 4) recovery = { status: 'moderate', nudge: `${consecutive} days in a row. A rest day soon will help you absorb these gains.` };
+    }
+  }
+
+  res.json({ summary, streak: { current, longest }, recovery });
+});
+
 export default router;

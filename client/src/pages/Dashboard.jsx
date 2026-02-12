@@ -8,9 +8,9 @@ import { ActivePlanBanner } from '../components/plans/ActivePlanBanner.jsx';
 import { WorkoutCard } from '../components/workout/WorkoutCard.jsx';
 import { FrequencyChart } from '../components/progress/FrequencyChart.jsx';
 import { useWorkouts } from '../hooks/useWorkouts.js';
-import { useProgressSummary, useStreak } from '../hooks/useProgress.js';
 import { toolsApi } from '../api/tools.js';
 import { plansApi } from '../api/plans.js';
+import { progressApi } from '../api/progress.js';
 import { todayISO } from '../utils/dates.js';
 import { RecoveryNudge } from '../components/dashboard/RecoveryNudge.jsx';
 import { Plus, Mountain, Gem, Dumbbell, Wrench, Activity, Clock, Gauge, Layers, Play, ChevronRight, Zap, CheckCircle2, Flame } from 'lucide-react';
@@ -18,10 +18,18 @@ import { Plus, Mountain, Gem, Dumbbell, Wrench, Activity, Clock, Gauge, Layers, 
 export function Dashboard() {
   const navigate = useNavigate();
   const { workouts, loading } = useWorkouts({ limit: 5 });
-  const { summary } = useProgressSummary({ days: 30 });
-  const { streak } = useStreak();
-  const [toolHint, setToolHint] = useState(null); // { type: 'favorite'|'recent'|'discover', tool? }
+  const [dashboard, setDashboard] = useState(null); // { summary, streak, recovery }
+  const [toolHint, setToolHint] = useState(null);
   const [todayPlan, setTodayPlan] = useState(null);
+
+  // Load dashboard composite: summary + streak + recovery in one call
+  useEffect(() => {
+    let cancelled = false;
+    progressApi.dashboard().then(data => {
+      if (!cancelled) setDashboard(data);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   // Load today's planned workouts
   useEffect(() => {
@@ -32,18 +40,14 @@ export function Dashboard() {
     return () => { cancelled = true; };
   }, []);
 
-  // Load a smart tool suggestion for the training card
+  // Load tool suggestions in one call (favorites + recent + all tools)
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      toolsApi.getFavorites().catch(() => []),
-      toolsApi.recentTools().catch(() => []),
-      toolsApi.list().catch(() => []),
-    ]).then(([favIds, recentIds, allTools]) => {
+    toolsApi.suggestions().then(({ favoriteIds, recentIds, tools }) => {
       if (cancelled) return;
-      const findTool = (id) => allTools.find(t => t.id === id);
-      if (favIds.length > 0) {
-        const tool = findTool(favIds[0]);
+      const findTool = (id) => tools.find(t => t.id === id);
+      if (favoriteIds.length > 0) {
+        const tool = findTool(favoriteIds[0]);
         if (tool) return setToolHint({ type: 'favorite', tool });
       }
       if (recentIds.length > 0) {
@@ -51,9 +55,12 @@ export function Dashboard() {
         if (tool) return setToolHint({ type: 'recent', tool });
       }
       setToolHint({ type: 'discover' });
-    });
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  const summary = dashboard?.summary;
+  const streak = dashboard?.streak;
 
   const quickActions = [
     { label: 'Log Roped', icon: Mountain, color: 'text-blue-500', bg: 'hover:bg-blue-500/10', to: '/log/roped' },
@@ -68,7 +75,7 @@ export function Dashboard() {
         <Button onClick={() => navigate('/log')}><Plus size={18} /> Log Workout</Button>
       </Header>
 
-      <RecoveryNudge />
+      <RecoveryNudge recovery={dashboard?.recovery} />
 
       {todayPlan && todayPlan.workouts.length > 0 ? (
         <Card className="p-4 space-y-3 border-emerald-500/20 bg-emerald-500/5">
@@ -119,7 +126,7 @@ export function Dashboard() {
           ))}
         </Card>
       ) : (
-        <ActivePlanBanner />
+        <ActivePlanBanner plan={todayPlan === null ? undefined : null} />
       )}
 
       {/* Training tools entry point — prominent on mobile */}

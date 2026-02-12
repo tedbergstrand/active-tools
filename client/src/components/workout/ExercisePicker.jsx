@@ -4,27 +4,33 @@ import { useToast } from '../common/Toast.jsx';
 import { CATEGORIES } from '../../utils/constants.js';
 import { Plus, X } from 'lucide-react';
 
-export function ExercisePicker({ value, onChange, category, className = '' }) {
+export function ExercisePicker({ value, onChange, category, className = '', exercises: propExercises, recentIds: propRecentIds }) {
   const toast = useToast();
-  const [exercises, setExercises] = useState([]);
-  const [recentIds, setRecentIds] = useState([]);
+  const [fetchedExercises, setFetchedExercises] = useState([]);
+  const [fetchedRecentIds, setFetchedRecentIds] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newCategory, setNewCategory] = useState(category || 'traditional');
   const [creating, setCreating] = useState(false);
 
+  // Only fetch if no exercises prop provided (standalone usage, e.g., PlanDetail)
   useEffect(() => {
+    if (propExercises) return;
     let cancelled = false;
     const params = category ? { category } : {};
-    exercisesApi.list(params).then(data => { if (!cancelled) setExercises(data); });
+    exercisesApi.list(params).then(data => { if (!cancelled) setFetchedExercises(data); });
     return () => { cancelled = true; };
-  }, [category]);
+  }, [category, propExercises]);
 
   useEffect(() => {
+    if (propRecentIds) return;
     let cancelled = false;
-    exercisesApi.recent().then(data => { if (!cancelled) setRecentIds(data); }).catch(() => {});
+    exercisesApi.recent().then(data => { if (!cancelled) setFetchedRecentIds(data); }).catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [propRecentIds]);
+
+  const exercises = propExercises || fetchedExercises;
+  const recentIds = propRecentIds || fetchedRecentIds;
 
   const grouped = exercises.reduce((acc, ex) => {
     const cat = ex.category;
@@ -42,7 +48,7 @@ export function ExercisePicker({ value, onChange, category, className = '' }) {
     setCreating(true);
     try {
       const created = await exercisesApi.create({ name: newName.trim(), category: newCategory });
-      setExercises(prev => [...prev, created]);
+      if (!propExercises) setFetchedExercises(prev => [...prev, created]);
       onChange(created.id, created);
       setShowCreate(false);
       setNewName('');
