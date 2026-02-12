@@ -8,10 +8,11 @@ export function ActivePlanBanner() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let cancelled = false;
     plansApi.list().then(plans => {
-      const active = plans.find(p => p.is_active);
-      setPlan(active || null);
-    });
+      if (!cancelled) setPlan(plans.find(p => p.is_active) || null);
+    }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   if (!plan) return null;

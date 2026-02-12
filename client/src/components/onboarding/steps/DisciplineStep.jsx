@@ -3,7 +3,7 @@ import { Mountain, Gem, Layers } from 'lucide-react';
 const disciplines = [
   { value: 'roped', label: 'Roped Climbing', desc: 'Sport, trad, or top rope', icon: Mountain, color: 'text-blue-400', border: 'border-blue-500/40', bg: 'bg-blue-500/10' },
   { value: 'bouldering', label: 'Bouldering', desc: 'Short powerful problems', icon: Gem, color: 'text-amber-400', border: 'border-amber-500/40', bg: 'bg-amber-500/10' },
-  { value: 'both', label: 'Both', desc: 'A mix of roped and bouldering', icon: Layers, color: 'text-violet-400', border: 'border-violet-500/40', bg: 'bg-violet-500/10' },
+  { value: 'mixed', label: 'Both', desc: 'A mix of roped and bouldering', icon: Layers, color: 'text-violet-400', border: 'border-violet-500/40', bg: 'bg-violet-500/10' },
 ];
 
 export function DisciplineStep({ value, onChange }) {

@@ -44,7 +44,7 @@ export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemo
           <input
             type="number"
             placeholder="Secs"
-            value={set.duration_seconds || ''}
+            value={set.duration_seconds ?? ''}
             onChange={e => update('duration_seconds', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-20"
           />
@@ -59,14 +59,14 @@ export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemo
           <input
             type="number"
             placeholder="Edge mm"
-            value={set.edge_size_mm || ''}
+            value={set.edge_size_mm ?? ''}
             onChange={e => update('edge_size_mm', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-24"
           />
           <input
             type="number"
             placeholder="Weight kg"
-            value={set.weight_kg || ''}
+            value={set.weight_kg ?? ''}
             onChange={e => update('weight_kg', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-24"
           />
@@ -78,21 +78,21 @@ export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemo
           <input
             type="number"
             placeholder="Reps"
-            value={set.reps || ''}
+            value={set.reps ?? ''}
             onChange={e => update('reps', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-20"
           />
           <input
             type="number"
             placeholder="Weight kg"
-            value={set.weight_kg || ''}
+            value={set.weight_kg ?? ''}
             onChange={e => update('weight_kg', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-24"
           />
           <input
             type="number"
             placeholder="Secs"
-            value={set.duration_seconds || ''}
+            value={set.duration_seconds ?? ''}
             onChange={e => update('duration_seconds', parseNumericInput(e.target.value))}
             className="bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-2 text-sm text-gray-100 w-20"
           />

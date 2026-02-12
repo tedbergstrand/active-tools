@@ -102,7 +102,7 @@ export function WorkoutForm({ initialData, workoutId }) {
             sort_order: i,
             notes: ex.notes,
             sets: ex.sets
-              .filter(s => Object.entries(s).some(([k, v]) => k !== '_key' && v))
+              .filter(s => Object.entries(s).some(([k, v]) => k !== '_key' && v != null && v !== ''))
               .map(({ _key, ...rest }) => rest),
           })),
       };

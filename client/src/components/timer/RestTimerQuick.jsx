@@ -13,8 +13,7 @@ export function RestTimerQuick() {
 
   const handleStart = (seconds, label) => {
     startSimple(seconds, `${label} Rest`);
-    // Auto-start on next tick
-    setTimeout(() => start(), 0);
+    start();
   };
 
   return (

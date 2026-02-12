@@ -14,12 +14,14 @@ export function useTimer() {
   const intervalRef = useRef(null);
   const wakeLockRef = useRef(null);
 
-  // Use refs to avoid stale closures in setInterval
+  // Use refs to avoid stale closures in setInterval and cross-callback calls
+  const stateRef = useRef(state);
   const phasesRef = useRef(phases);
   const totalSetsRef = useRef(totalSets);
   const currentPhaseRef = useRef(currentPhase);
   const currentSetRef = useRef(currentSet);
 
+  useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => { phasesRef.current = phases; }, [phases]);
   useEffect(() => { totalSetsRef.current = totalSets; }, [totalSets]);
   useEffect(() => { currentPhaseRef.current = currentPhase; }, [currentPhase]);
@@ -74,6 +76,7 @@ export function useTimer() {
     if (p.length > 0) {
       setTimeLeft(p[0].duration_seconds);
       setState(STATES.ready);
+      stateRef.current = STATES.ready;
     }
   }, [clearTimer]);
 
@@ -87,6 +90,7 @@ export function useTimer() {
     setCurrentSet(1);
     setTimeLeft(seconds);
     setState(STATES.ready);
+    stateRef.current = STATES.ready;
   }, [clearTimer]);
 
   const advance = useCallback(() => {
@@ -120,8 +124,9 @@ export function useTimer() {
   }, [clearTimer, releaseWakeLock, playBeep, vibrate]);
 
   const start = useCallback(() => {
-    if (state !== STATES.ready && state !== STATES.paused) return;
+    if (stateRef.current !== STATES.ready && stateRef.current !== STATES.paused) return;
     setState(STATES.running);
+    stateRef.current = STATES.running;
     requestWakeLock();
     intervalRef.current = setInterval(() => {
       setTimeLeft(prev => {
@@ -133,11 +138,12 @@ export function useTimer() {
         return prev - 1;
       });
     }, 1000);
-  }, [state, advance, requestWakeLock, playBeep]);
+  }, [advance, requestWakeLock, playBeep]);
 
   const pause = useCallback(() => {
     clearTimer();
     setState(STATES.paused);
+    stateRef.current = STATES.paused;
   }, [clearTimer]);
 
   const reset = useCallback(() => {
@@ -148,8 +154,10 @@ export function useTimer() {
     if (phases.length > 0) {
       setTimeLeft(phases[0].duration_seconds);
       setState(STATES.ready);
+      stateRef.current = STATES.ready;
     } else {
       setState(STATES.idle);
+      stateRef.current = STATES.idle;
     }
   }, [clearTimer, releaseWakeLock, phases]);
 
@@ -157,6 +165,7 @@ export function useTimer() {
     clearTimer();
     releaseWakeLock();
     setState(STATES.idle);
+    stateRef.current = STATES.idle;
     setPhases([]);
     setTimeLeft(0);
     setCurrentPhase(0);

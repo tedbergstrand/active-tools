@@ -98,6 +98,7 @@ export function useStreak() {
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
+    setLoading(true);
     progressApi.streak({ signal: controller.signal })
       .then(data => { if (!cancelled) { setStreak(data); setError(null); } })
       .catch(e => { if (!cancelled && e.name !== 'AbortError') setError(e.message); })
@@ -206,6 +207,7 @@ export function useRecovery() {
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
+    setLoading(true);
     progressApi.recovery({ signal: controller.signal })
       .then(data => { if (!cancelled) { setRecovery(data); setError(null); } })
       .catch(e => { if (!cancelled && e.name !== 'AbortError') setError(e.message); })
@@ -271,6 +273,7 @@ export function useExercisesWithData() {
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
+    setLoading(true);
     progressApi.exercisesWithData({ signal: controller.signal })
       .then(d => { if (!cancelled) { setExercises(d); setError(null); } })
       .catch(e => { if (!cancelled && e.name !== 'AbortError') setError(e.message); })

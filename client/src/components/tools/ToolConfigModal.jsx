@@ -118,13 +118,13 @@ function StepperField({ configKey, value, def, onChange }) {
 }
 
 export function ToolConfigModal({ open, onClose, tool, onStart }) {
-  const defaultConfig = tool?.default_config ? JSON.parse(tool.default_config) : {};
+  const defaultConfig = (() => { try { return tool?.default_config ? JSON.parse(tool.default_config) : {}; } catch { return {}; } })();
   const [config, setConfig] = useState(defaultConfig);
 
   useEffect(() => {
-    if (tool?.default_config) {
-      setConfig(JSON.parse(tool.default_config));
-    } else {
+    try {
+      setConfig(tool?.default_config ? JSON.parse(tool.default_config) : {});
+    } catch {
       setConfig({});
     }
   }, [tool?.id]); // eslint-disable-line react-hooks/exhaustive-deps

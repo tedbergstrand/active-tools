@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/layout/Header.jsx';
 import { WorkoutCard } from '../components/workout/WorkoutCard.jsx';
@@ -45,16 +45,19 @@ export function WorkoutHistory() {
   const [sessions, setSessions] = useState([]);
   const [toolsLoading, setToolsLoading] = useState(false);
 
+  const searchRef = useRef(search);
+  searchRef.current = search;
+
   const fetchWorkouts = useCallback(() => {
     setLoading(true);
     const params = { limit, offset };
     if (category) params.category = category;
-    if (search) params.search = search;
+    if (searchRef.current) params.search = searchRef.current;
     workoutsApi.list(params)
       .then(res => { setWorkouts(res.workouts); setTotal(res.total); })
       .catch(() => toast.error('Failed to load workouts'))
       .finally(() => setLoading(false));
-  }, [category, search, offset, toast]);
+  }, [category, offset, toast]);
 
   const fetchSessions = useCallback(() => {
     setToolsLoading(true);
@@ -64,7 +67,7 @@ export function WorkoutHistory() {
       .finally(() => setToolsLoading(false));
   }, [toast]);
 
-  useEffect(() => { setOffset(0); }, [category, search]);
+  useEffect(() => { setOffset(0); }, [category]);
   useEffect(() => { if (view === 'workouts') fetchWorkouts(); }, [fetchWorkouts, view]);
   useEffect(() => { if (view === 'tools') fetchSessions(); }, [fetchSessions, view]);
 
