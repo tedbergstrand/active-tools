@@ -299,10 +299,11 @@ router.get('/personal-records', (req, res) => {
 router.get('/recovery', (req, res) => {
   const today = new Date().toISOString().split('T')[0];
 
-  // Get recent workout dates with RPE
+  // Get recent workout dates with RPE (exclude rest days)
   const recentWorkouts = db.prepare(`
     SELECT date, rpe, duration_minutes FROM workouts
     WHERE date >= date(?, '-30 days')
+      AND NOT (duration_minutes = 0 AND rpe = 1)
     ORDER BY date DESC
   `).all(today);
 

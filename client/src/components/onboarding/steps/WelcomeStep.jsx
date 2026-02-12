@@ -9,7 +9,7 @@ export function WelcomeStep({ onNext }) {
       </div>
       <div className="space-y-3">
         <h1 className="text-3xl font-bold">Active Tools</h1>
-        <p className="text-gray-400 text-lg max-w-sm">
+        <p className="text-gray-400 text-lg px-2">
           Your climbing training companion. Log workouts, follow plans, and track your progress.
         </p>
       </div>
