@@ -47,9 +47,15 @@ router.get('/', (req, res) => {
   params.push(limit, offset);
 
   const workouts = db.prepare(sql).all(...params);
-  const total = db.prepare(
-    `SELECT COUNT(*) as count FROM workouts${category ? ' WHERE category = ?' : ''}`
-  ).get(...(category ? [category] : []));
+
+  let countSql = 'SELECT COUNT(*) as count FROM workouts WHERE 1=1';
+  const countParams = [];
+  if (category) { countSql += ' AND category = ?'; countParams.push(category); }
+  if (location) { countSql += ' AND location LIKE ?'; countParams.push(`%${location}%`); }
+  if (search) { countSql += ' AND (notes LIKE ? OR location LIKE ?)'; countParams.push(`%${search}%`, `%${search}%`); }
+  if (date_from) { countSql += ' AND date >= ?'; countParams.push(date_from); }
+  if (date_to) { countSql += ' AND date <= ?'; countParams.push(date_to); }
+  const total = db.prepare(countSql).get(...countParams);
 
   // Attach exercise summaries for each workout in a single batch query
   if (workouts.length) {

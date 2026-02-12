@@ -33,17 +33,12 @@ router.get('/summary', (req, res) => {
   const params = [since];
   if (category) { whereClause += ' AND w.category = ?'; params.push(category); }
 
-  const totalWorkouts = db.prepare(
-    `SELECT COUNT(*) as count FROM workouts w ${whereClause}`
-  ).get(...params).count;
-
-  const totalDuration = db.prepare(
-    `SELECT COALESCE(SUM(duration_minutes), 0) as total FROM workouts w ${whereClause}`
-  ).get(...params).total;
-
-  const avgRpe = db.prepare(
-    `SELECT ROUND(AVG(rpe), 1) as avg FROM workouts w ${whereClause} AND rpe IS NOT NULL`
-  ).get(...params).avg;
+  const stats = db.prepare(`
+    SELECT COUNT(*) as totalWorkouts,
+      COALESCE(SUM(duration_minutes), 0) as totalDuration,
+      ROUND(AVG(CASE WHEN rpe IS NOT NULL THEN rpe END), 1) as avgRpe
+    FROM workouts w ${whereClause}
+  `).get(...params);
 
   const totalSets = db.prepare(`
     SELECT COUNT(*) as count FROM workout_sets ws
@@ -59,7 +54,8 @@ router.get('/summary', (req, res) => {
   ).get(since);
 
   res.json({
-    totalWorkouts, totalDuration, avgRpe, totalSets, days: Number(days),
+    totalWorkouts: stats.totalWorkouts, totalDuration: stats.totalDuration,
+    avgRpe: stats.avgRpe, totalSets, days: Number(days),
     toolSessions: toolSessions.count,
     toolMinutes: Math.round(toolSessions.seconds / 60),
   });
@@ -178,19 +174,27 @@ router.get('/trends', (req, res) => {
   const previousStart = daysAgoISO(days * 2);
   const currentEnd = localDateISO();
 
-  function periodStats(since, until) {
-    let where = 'WHERE w.date >= ? AND w.date <= ?';
-    const params = [since, until];
-    if (category) { where += ' AND w.category = ?'; params.push(category); }
+  let catFilter = '';
+  const queryParams = [currentStart, currentEnd, previousStart, currentStart, previousStart];
+  if (category) { catFilter = ' AND w.category = ?'; queryParams.push(category); }
 
-    const workouts = db.prepare(`SELECT COUNT(*) as c FROM workouts w ${where}`).get(...params).c;
-    const duration = db.prepare(`SELECT COALESCE(SUM(duration_minutes),0) as d FROM workouts w ${where}`).get(...params).d;
-    const rpe = db.prepare(`SELECT ROUND(AVG(rpe),1) as r FROM workouts w ${where} AND rpe IS NOT NULL`).get(...params).r;
-    return { workouts, duration, rpe };
-  }
+  const periods = db.prepare(`
+    SELECT
+      CASE
+        WHEN w.date >= ? AND w.date <= ? THEN 'current'
+        WHEN w.date >= ? AND w.date < ? THEN 'previous'
+      END as period,
+      COUNT(*) as workouts,
+      COALESCE(SUM(duration_minutes), 0) as duration,
+      ROUND(AVG(CASE WHEN rpe IS NOT NULL THEN rpe END), 1) as rpe
+    FROM workouts w
+    WHERE w.date >= ?${catFilter}
+    GROUP BY period
+    HAVING period IS NOT NULL
+  `).all(...queryParams);
 
-  const current = periodStats(currentStart, currentEnd);
-  const previous = periodStats(previousStart, currentStart);
+  const current = periods.find(p => p.period === 'current') || { workouts: 0, duration: 0, rpe: null };
+  const previous = periods.find(p => p.period === 'previous') || { workouts: 0, duration: 0, rpe: null };
 
   function pctChange(cur, prev) {
     if (!prev || prev === 0) return cur > 0 ? 100 : 0;
@@ -243,15 +247,20 @@ router.get('/personal-records', (req, res) => {
   const params = [];
   if (category) { whereClause += ' AND w.category = ?'; params.push(category); }
 
-  // Highest grades — sort by grade rank in JS (SQL alphabetical sort gets V9 > V10 wrong)
+  // Highest grades — one row per distinct grade via CTE, then sort in JS
+  // (SQL alphabetical ORDER BY gets V9 > V10 wrong, so we sort the small result set)
   const highestGrades = db.prepare(`
-    SELECT ws.grade, ws.send_type, w.date, w.category, e.name as exercise_name
-    FROM workout_sets ws
-    JOIN workout_exercises we ON we.id = ws.workout_exercise_id
-    JOIN workouts w ON w.id = we.workout_id
-    JOIN exercises e ON e.id = we.exercise_id
-    ${whereClause} AND ws.grade IS NOT NULL AND ws.send_type IN ('onsight', 'flash', 'redpoint')
-    LIMIT 10000
+    WITH ranked AS (
+      SELECT ws.grade, ws.send_type, w.date, w.category, e.name as exercise_name,
+        ROW_NUMBER() OVER (PARTITION BY ws.grade ORDER BY w.date DESC) as rn
+      FROM workout_sets ws
+      JOIN workout_exercises we ON we.id = ws.workout_exercise_id
+      JOIN workouts w ON w.id = we.workout_id
+      JOIN exercises e ON e.id = we.exercise_id
+      ${whereClause} AND ws.grade IS NOT NULL AND ws.send_type IN ('onsight', 'flash', 'redpoint')
+    )
+    SELECT grade, send_type, date, category, exercise_name
+    FROM ranked WHERE rn = 1
   `).all(...params)
     .sort((a, b) => gradeRank(b.grade) - gradeRank(a.grade))
     .slice(0, 10);
@@ -346,15 +355,27 @@ router.get('/recovery', (req, res) => {
   }
 
   // Volume spike: current week vs 4-week rolling average
-  const weeklyVolume = [];
+  const weekBounds = [];
   for (let i = 0; i < 5; i++) {
-    const weekEnd = daysAgoISO(i * 7);
-    const weekStart = daysAgoISO((i + 1) * 7);
-    const vol = db.prepare(
-      'SELECT COALESCE(SUM(duration_minutes), 0) as total FROM workouts WHERE date > ? AND date <= ?'
-    ).get(weekStart, weekEnd).total;
-    weeklyVolume.push(vol);
+    weekBounds.push(daysAgoISO((i + 1) * 7), daysAgoISO(i * 7));
   }
+  const volumeRows = db.prepare(`
+    SELECT
+      CASE
+        WHEN date > ? AND date <= ? THEN 0
+        WHEN date > ? AND date <= ? THEN 1
+        WHEN date > ? AND date <= ? THEN 2
+        WHEN date > ? AND date <= ? THEN 3
+        WHEN date > ? AND date <= ? THEN 4
+      END as week_idx,
+      COALESCE(SUM(duration_minutes), 0) as total
+    FROM workouts
+    WHERE date > ?
+    GROUP BY week_idx
+    HAVING week_idx IS NOT NULL
+  `).all(...weekBounds, daysAgoISO(35));
+  const weeklyVolume = [0, 0, 0, 0, 0];
+  for (const row of volumeRows) weeklyVolume[row.week_idx] = row.total;
   const currentWeekVol = weeklyVolume[0];
   const avgPreviousWeeks = weeklyVolume.slice(1).reduce((s, v) => s + v, 0) / 4;
   const volumeSpikePct = avgPreviousWeeks > 0 ? Math.round(((currentWeekVol - avgPreviousWeeks) / avgPreviousWeeks) * 100) : 0;
@@ -418,29 +439,43 @@ router.post('/check-prs', (req, res) => {
     (setsByExercise[s.workout_exercise_id] ??= []).push(s);
   }
 
+  const exerciseIds = exercises.map(ex => ex.exercise_id).filter(Boolean);
+  if (!exerciseIds.length) return res.json({ prs: [] });
+
+  // Batch: previous bests for all exercises (excluding this workout)
+  const prevBests = db.prepare(`
+    SELECT we.exercise_id,
+      MAX(ws.weight_kg) as max_weight,
+      MAX(ws.reps) as max_reps,
+      MAX(ws.duration_seconds) as max_duration
+    FROM workout_sets ws
+    JOIN workout_exercises we ON we.id = ws.workout_exercise_id
+    WHERE we.exercise_id IN (${exerciseIds.map(() => '?').join(',')})
+      AND we.workout_id != ?
+    GROUP BY we.exercise_id
+  `).all(...exerciseIds, workout_id);
+  const prevBestMap = {};
+  for (const row of prevBests) prevBestMap[row.exercise_id] = row;
+
+  // Batch: previous grades for all exercises (excluding this workout)
+  const prevGradeRows = db.prepare(`
+    SELECT we.exercise_id, ws.grade
+    FROM workout_sets ws
+    JOIN workout_exercises we ON we.id = ws.workout_exercise_id
+    WHERE we.exercise_id IN (${exerciseIds.map(() => '?').join(',')})
+      AND we.workout_id != ? AND ws.grade IS NOT NULL
+  `).all(...exerciseIds, workout_id);
+  const prevGradeMap = {};
+  for (const row of prevGradeRows) {
+    (prevGradeMap[row.exercise_id] ??= []).push(row.grade);
+  }
+
   const prs = [];
 
   for (const ex of exercises) {
     const exSets = setsByExercise[ex.we_id] || [];
-
-    // Get previous bests (excluding this workout)
-    const prevBest = db.prepare(`
-      SELECT
-        MAX(ws.weight_kg) as max_weight,
-        MAX(ws.reps) as max_reps,
-        MAX(ws.duration_seconds) as max_duration
-      FROM workout_sets ws
-      JOIN workout_exercises we ON we.id = ws.workout_exercise_id
-      WHERE we.exercise_id = ? AND we.workout_id != ?
-    `).get(ex.exercise_id, workout_id);
-
-    // Previous best grade
-    const prevGrades = db.prepare(`
-      SELECT ws.grade
-      FROM workout_sets ws
-      JOIN workout_exercises we ON we.id = ws.workout_exercise_id
-      WHERE we.exercise_id = ? AND we.workout_id != ? AND ws.grade IS NOT NULL
-    `).all(ex.exercise_id, workout_id).map(r => r.grade);
+    const prevBest = prevBestMap[ex.exercise_id];
+    const prevGrades = prevGradeMap[ex.exercise_id] || [];
     const prevMaxGradeRank = prevGrades.length ? Math.max(...prevGrades.map(g => gradeRank(g))) : -1;
 
     for (const set of exSets) {
