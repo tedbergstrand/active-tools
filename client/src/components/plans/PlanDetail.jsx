@@ -178,7 +178,7 @@ function WorkoutExerciseEditor({ workout, onUpdate }) {
                 className="w-20 bg-[#0f1117] border border-[#2e3347] rounded-lg px-2 py-1 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500" />
             </div>
           </div>
-          <button type="button" onClick={() => removeEx(i)} className="p-1 text-gray-500 hover:text-red-400 mt-2">
+          <button type="button" onClick={() => removeEx(i)} className="p-2.5 text-gray-500 hover:text-red-400 mt-2" aria-label="Remove exercise">
             <Trash2 size={14} />
           </button>
         </div>

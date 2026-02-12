@@ -35,7 +35,7 @@ const profileLabels = {
 };
 
 function humanize(key, value) {
-  if (!value) return '—';
+  if (!value || value === '') return '—';
   return profileLabels[key]?.[value] || value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ');
 }
 

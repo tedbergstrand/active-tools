@@ -61,6 +61,7 @@ export function WorkoutDetail() {
   };
 
   const handleDelete = async () => {
+    setShowDeleteConfirm(false);
     try {
       await workoutsApi.delete(id);
       toast.success('Workout deleted');

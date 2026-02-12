@@ -19,10 +19,6 @@ export function WorkoutSaveOverlay({ workoutId, exerciseCount, setCount, onDismi
       setStreak(streakData);
       setLoading(false);
 
-      // Auto-dismiss after 3s if PRs found
-      if (prData.prs?.length > 0) {
-        setTimeout(() => {}, 3000);
-      }
     });
   }, [workoutId]);
 

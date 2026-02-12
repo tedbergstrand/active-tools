@@ -161,7 +161,7 @@ export function WorkoutForm({ initialData, workoutId }) {
                   updateExercise(i, { exercise_id: id, exerciseData: data });
                 }}
               />
-              <button type="button" onClick={() => removeExercise(i)} className="p-2 text-gray-500 hover:text-red-400">
+              <button type="button" onClick={() => removeExercise(i)} className="p-3 text-gray-500 hover:text-red-400" aria-label="Remove exercise">
                 <Trash2 size={16} />
               </button>
             </div>
