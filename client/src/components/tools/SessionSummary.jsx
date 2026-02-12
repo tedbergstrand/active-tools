@@ -4,6 +4,7 @@ import { Trophy, Clock, Hash, Sparkles, Check, Loader2, Dumbbell, Timer } from '
 import { Button } from '../common/Button.jsx';
 import { useSpeech, formatTimeAsSpeech } from '../../hooks/useSpeech.js';
 import { useTimerContext } from '../timer/TimerContext.jsx';
+import { useToast } from '../common/Toast.jsx';
 import { toolsApi } from '../../api/tools.js';
 import { formatSessionTime } from '../../utils/buildSteps.js';
 import { todayISO } from '../../utils/dates.js';
@@ -43,6 +44,7 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
   const [chaining, setChaining] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const { speak } = useSpeech();
+  const toast = useToast();
 
   useEffect(() => {
     speak(`Session complete! Total time: ${formatTimeAsSpeech(elapsed)}.`);
@@ -63,15 +65,21 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
   const handleSave = async () => {
     if (saving || saved) return;
     setSaving(true);
-    const result = await onSave({
-      tool_id: tool.id,
-      duration_seconds: elapsed,
-      config,
-      results: { ...stats, log },
-      notes: notes || null,
-    });
-    setSaved(true);
-    if (result?.id) setSavedSessionId(result.id);
+    try {
+      const result = await onSave({
+        tool_id: tool.id,
+        duration_seconds: elapsed,
+        config,
+        results: { ...stats, log },
+        notes: notes || null,
+      });
+      setSaved(true);
+      if (result?.id) setSavedSessionId(result.id);
+    } catch (e) {
+      toast.error('Failed to save session');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleLogAsWorkout = () => {

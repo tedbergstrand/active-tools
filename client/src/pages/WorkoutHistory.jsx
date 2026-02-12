@@ -12,6 +12,7 @@ import { useToast } from '../components/common/Toast.jsx';
 import { workoutsApi } from '../api/workouts.js';
 import { toolsApi } from '../api/tools.js';
 import { formatRelative, formatDate } from '../utils/dates.js';
+import { formatSeconds } from '../utils/formatters.js';
 import { Search, X, Wrench, Clock, Play } from 'lucide-react';
 
 const viewTabs = [
@@ -25,14 +26,6 @@ const categoryTabs = [
   { value: 'bouldering', label: 'Bouldering' },
   { value: 'traditional', label: 'Training' },
 ];
-
-function formatDuration(seconds) {
-  if (!seconds) return '—';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  if (m === 0) return `${s}s`;
-  return s > 0 ? `${m}m ${s}s` : `${m}m`;
-}
 
 export function WorkoutHistory() {
   const navigate = useNavigate();
@@ -163,7 +156,7 @@ export function WorkoutHistory() {
                       </div>
                       <div className="flex items-center gap-1 text-sm text-gray-400">
                         <Clock size={14} />
-                        <span>{formatDuration(session.duration_seconds)}</span>
+                        <span>{formatSeconds(session.duration_seconds)}</span>
                       </div>
                     </div>
                     {rounds > 0 && (

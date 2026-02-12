@@ -14,8 +14,14 @@ export function PlanDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    plansApi.progress(id).then(setProgress).catch(() => toast.error('Failed to load plan progress'));
-  }, [id]);
+    let cancelled = false;
+    plansApi.progress(id).then(data => {
+      if (!cancelled) setProgress(data);
+    }).catch(() => {
+      if (!cancelled) toast.error('Failed to load plan progress');
+    });
+    return () => { cancelled = true; };
+  }, [id, toast]);
 
   if (loading) return <PageLoading />;
   if (!plan) return <div className="text-center py-12 text-gray-500">Plan not found</div>;

@@ -1,5 +1,3 @@
-import { formatSeconds } from '../../utils/formatters.js';
-
 export function TimerDisplay({ timeLeft, phase, currentSet, totalSets, size = 'lg' }) {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;

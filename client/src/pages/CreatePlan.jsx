@@ -5,6 +5,7 @@ import { Card, CardContent } from '../components/common/Card.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { Select } from '../components/common/Select.jsx';
+import { useToast } from '../components/common/Toast.jsx';
 import { plansApi } from '../api/plans.js';
 import { DIFFICULTIES } from '../utils/constants.js';
 import { Save } from 'lucide-react';
@@ -23,6 +24,7 @@ const difficultyOptions = [
 
 export function CreatePlan() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -46,7 +48,7 @@ export function CreatePlan() {
       });
       navigate(`/plans/${result.id}`);
     } catch (err) {
-      console.error('Failed to create plan:', err);
+      toast.error('Failed to create plan');
     } finally {
       setSaving(false);
     }

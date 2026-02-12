@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { workoutsApi } from '../../api/workouts.js';
-import { settingsApi } from '../../api/settings.js';
+import { useSettings } from '../settings/SettingsContext.jsx';
 import { Input, Textarea } from '../common/Input.jsx';
 import { Select } from '../common/Select.jsx';
 import { Button } from '../common/Button.jsx';
@@ -20,8 +20,9 @@ const categoryOptions = [
 
 function getExerciseType(exercise) {
   if (!exercise) return 'general';
-  if (exercise.exercise_category === 'roped' || exercise.category === 'roped') return 'roped';
-  if (exercise.exercise_category === 'bouldering' || exercise.category === 'bouldering') return 'bouldering';
+  const cat = exercise.category;
+  if (cat === 'roped') return 'roped';
+  if (cat === 'bouldering') return 'bouldering';
   if (exercise.subcategory === 'hangboard') return 'hangboard';
   return 'general';
 }
@@ -29,7 +30,7 @@ function getExerciseType(exercise) {
 export function WorkoutForm({ initialData, workoutId }) {
   const navigate = useNavigate();
   const { category: urlCategory } = useParams();
-  const [settings, setSettings] = useState({});
+  const { settings } = useSettings();
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   const isEditMode = Boolean(workoutId);
@@ -44,10 +45,6 @@ export function WorkoutForm({ initialData, workoutId }) {
     exercises: [],
   });
 
-  useEffect(() => {
-    settingsApi.get().then(setSettings);
-  }, []);
-
   const updateForm = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const addExercise = () => {
@@ -57,10 +54,10 @@ export function WorkoutForm({ initialData, workoutId }) {
     }));
   };
 
-  const updateExercise = (index, field, value) => {
+  const updateExercise = (index, updates) => {
     setForm(prev => {
       const exercises = [...prev.exercises];
-      exercises[index] = { ...exercises[index], [field]: value };
+      exercises[index] = { ...exercises[index], ...updates };
       return { ...prev, exercises };
     });
   };
@@ -146,8 +143,7 @@ export function WorkoutForm({ initialData, workoutId }) {
                 value={ex.exercise_id}
                 category={form.category}
                 onChange={(id, data) => {
-                  updateExercise(i, 'exercise_id', id);
-                  updateExercise(i, 'exerciseData', data);
+                  updateExercise(i, { exercise_id: id, exerciseData: data });
                 }}
               />
               <button type="button" onClick={() => removeExercise(i)} className="p-2 text-gray-500 hover:text-red-400">
@@ -159,7 +155,7 @@ export function WorkoutForm({ initialData, workoutId }) {
                 sets={ex.sets}
                 exerciseType={getExerciseType(ex.exerciseData)}
                 gradeSystem={gradeSystem}
-                onChange={sets => updateExercise(i, 'sets', sets)}
+                onChange={sets => updateExercise(i, { sets })}
               />
             )}
           </div>

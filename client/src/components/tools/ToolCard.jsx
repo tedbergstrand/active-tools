@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Timer, Volume2, Music, ListChecks, Gamepad2, Shuffle, Heart, Clock } from 'lucide-react';
 import { Badge } from '../common/Badge.jsx';
 import { estimateSessionTime, formatSessionTime } from '../../utils/buildSteps.js';
@@ -39,11 +40,12 @@ export function ToolCard({ tool, onClick, isFavorite }) {
   const catColor = categoryColors[tool.category] || 'gray';
   const diffColor = difficultyColors[tool.difficulty] || 'gray';
 
-  let estimated = 0;
-  try {
-    const cfg = tool.default_config ? JSON.parse(tool.default_config) : {};
-    estimated = estimateSessionTime(tool, cfg);
-  } catch { /* ignore */ }
+  const estimated = useMemo(() => {
+    try {
+      const cfg = tool.default_config ? JSON.parse(tool.default_config) : {};
+      return estimateSessionTime(tool, cfg);
+    } catch { return 0; }
+  }, [tool.id, tool.default_config]);
 
   return (
     <button

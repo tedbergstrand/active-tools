@@ -344,10 +344,8 @@ export function ToolSessionRunner({ tool, initialConfig, onClose, onMinimize, se
   }, []);
 
   const handleSave = useCallback(async (data) => {
-    try {
-      const result = await toolsApi.saveSession(data);
-      return result;
-    } catch (e) { console.error('Failed to save:', e); }
+    const result = await toolsApi.saveSession(data);
+    return result;
   }, []);
 
   const handleDiscard = useCallback(() => { onClose(); }, [onClose]);

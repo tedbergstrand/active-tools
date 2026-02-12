@@ -4,7 +4,7 @@ import db from '../db/database.js';
 const router = Router();
 
 const ALLOWED_KEYS = new Set([
-  'grade_system', 'boulder_grade_system', 'units', 'timer_sound', 'timer_vibration',
+  'grade_system', 'boulder_grade_system', 'units', 'timer_sound', 'timer_vibration', 'theme',
 ]);
 
 router.get('/', (req, res) => {

@@ -6,16 +6,18 @@ import { Input } from '../components/common/Input.jsx';
 import { TimerDisplay } from '../components/timer/TimerDisplay.jsx';
 import { TimerControls } from '../components/timer/TimerControls.jsx';
 import { useTimerContext } from '../components/timer/TimerContext.jsx';
+import { useToast } from '../components/common/Toast.jsx';
 import { timersApi } from '../api/timers.js';
 import { Timer, Clock, Dumbbell, Zap } from 'lucide-react';
 
 export function TimerPage() {
   const timer = useTimerContext();
+  const toast = useToast();
   const [presets, setPresets] = useState([]);
   const [customSeconds, setCustomSeconds] = useState(60);
 
   useEffect(() => {
-    timersApi.list().then(setPresets);
+    timersApi.list().then(setPresets).catch(() => toast.error('Failed to load timer presets'));
   }, []);
 
   const restPresets = presets.filter(p => p.mode === 'rest');

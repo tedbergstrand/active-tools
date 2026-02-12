@@ -3,6 +3,7 @@ import { TimerProvider } from './components/timer/TimerContext.jsx';
 import { ToolSessionProvider } from './components/tools/ToolSessionContext.jsx';
 import { SettingsProvider } from './components/settings/SettingsContext.jsx';
 import { ToastProvider } from './components/common/Toast.jsx';
+import { ErrorBoundary } from './components/common/ErrorBoundary.jsx';
 import { AppShell } from './components/layout/AppShell.jsx';
 import { Dashboard } from './pages/Dashboard.jsx';
 import { RopedClimbing } from './pages/RopedClimbing.jsx';
@@ -28,6 +29,7 @@ export default function App() {
       <ToastProvider>
       <TimerProvider>
         <ToolSessionProvider>
+          <ErrorBoundary>
           <Routes>
             <Route element={<AppShell />}>
               <Route path="/" element={<Dashboard />} />
@@ -48,6 +50,7 @@ export default function App() {
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Routes>
+          </ErrorBoundary>
         </ToolSessionProvider>
       </TimerProvider>
       </ToastProvider>

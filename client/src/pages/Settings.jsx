@@ -34,9 +34,13 @@ export function Settings() {
   const [settings, setSettings] = useState({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    settingsApi.get().then(setSettings);
+    settingsApi.get().then(setSettings).catch(() => {
+      toast.error('Failed to load settings');
+      setLoadError(true);
+    });
   }, []);
 
   const update = (key, value) => {
@@ -109,7 +113,7 @@ export function Settings() {
       </Card>
 
       <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saving || loadError}>
           <Save size={16} /> {saving ? 'Saving...' : 'Save Settings'}
         </Button>
         {saved && <span className="text-sm text-emerald-400">Saved!</span>}

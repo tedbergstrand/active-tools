@@ -24,18 +24,22 @@ export function Dashboard() {
 
   // Load today's planned workouts
   useEffect(() => {
+    let cancelled = false;
     plansApi.todayPlan().then(data => {
-      if (data.plan && data.workouts?.length) setTodayPlan(data);
+      if (!cancelled && data.plan && data.workouts?.length) setTodayPlan(data);
     }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   // Load a smart tool suggestion for the training card
   useEffect(() => {
+    let cancelled = false;
     Promise.all([
       toolsApi.getFavorites().catch(() => []),
       toolsApi.recentTools().catch(() => []),
       toolsApi.list().catch(() => []),
     ]).then(([favIds, recentIds, allTools]) => {
+      if (cancelled) return;
       const findTool = (id) => allTools.find(t => t.id === id);
       if (favIds.length > 0) {
         const tool = findTool(favIds[0]);
@@ -47,6 +51,7 @@ export function Dashboard() {
       }
       setToolHint({ type: 'discover' });
     });
+    return () => { cancelled = true; };
   }, []);
 
   const quickActions = [

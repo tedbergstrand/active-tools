@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../components/common/EmptyState.jsx';
 import { toolsApi } from '../api/tools.js';
 import { formatSessionTime } from '../utils/buildSteps.js';
+import { formatRelative } from '../utils/dates.js';
 
 const CATEGORIES = [
   { value: 'all', label: 'All' },
@@ -26,15 +27,6 @@ const CATEGORIES = [
   { value: 'competition', label: 'Competition' },
 ];
 
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diff = now - d;
-  if (diff < 86400000) return 'Today';
-  if (diff < 172800000) return 'Yesterday';
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
 
 export function TrainingTools() {
   const navigate = useNavigate();
@@ -215,7 +207,7 @@ export function TrainingTools() {
                 <span className="text-sm text-gray-100">{s.tool_name}</span>
                 <div className="flex items-center gap-3 text-sm text-gray-400 tabular-nums">
                   <span>{formatSessionTime(s.duration_seconds)}</span>
-                  <span>{formatDate(s.created_at)}</span>
+                  <span>{formatRelative(s.created_at)}</span>
                 </div>
               </button>
             ))}

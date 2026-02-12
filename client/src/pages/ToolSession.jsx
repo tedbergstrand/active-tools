@@ -10,17 +10,9 @@ import { toolsApi } from '../api/tools.js';
 import { useToast } from '../components/common/Toast.jsx';
 import { getStepSummary, estimateSessionTime, formatSessionTime } from '../utils/buildSteps.js';
 import { useSpeech, warmUpSpeech } from '../hooks/useSpeech.js';
+import { formatRelative } from '../utils/dates.js';
 
 const difficultyColors = { beginner: 'green', intermediate: 'amber', advanced: 'red' };
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diff = now - d;
-  if (diff < 86400000) return 'Today';
-  if (diff < 172800000) return 'Yesterday';
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
 
 export function ToolSession() {
   const { slug } = useParams();
@@ -45,16 +37,22 @@ export function ToolSession() {
   useEffect(() => {
     setAudioTested(false);
     setShowSteps(false);
+    let cancelled = false;
     setLoading(true);
     toolsApi.get(slug).then(data => {
+      if (cancelled) return;
       setTool(data);
       setLoading(false);
-      toolsApi.history({ tool_id: data.id, limit: 5 }).then(setHistory).catch(() => {});
-      toolsApi.getFavorites().then(favs => setIsFavorite(favs.includes(data.id))).catch(() => {});
-    }).catch(() => { setLoading(false); toast.error('Failed to load tool'); });
-  }, [slug]);
+      toolsApi.history({ tool_id: data.id, limit: 5 }).then(h => { if (!cancelled) setHistory(h); }).catch(() => {});
+      toolsApi.getFavorites().then(favs => { if (!cancelled) setIsFavorite(favs.includes(data.id)); }).catch(() => {});
+    }).catch(() => { if (!cancelled) { setLoading(false); toast.error('Failed to load tool'); } });
+    return () => { cancelled = true; };
+  }, [slug, toast]);
 
-  const defaultConfig = tool?.default_config ? JSON.parse(tool.default_config) : {};
+  const defaultConfig = (() => {
+    try { return tool?.default_config ? JSON.parse(tool.default_config) : {}; }
+    catch { return {}; }
+  })();
 
   const stepSummary = useMemo(() => {
     if (!tool) return [];
@@ -206,7 +204,7 @@ export function ToolSession() {
           <div className="space-y-2">
             {history.map(s => (
               <div key={s.id} className="bg-[#0f1117] rounded-xl px-4 py-3 flex items-center justify-between">
-                <span className="text-sm text-gray-200">{formatDate(s.created_at)}</span>
+                <span className="text-sm text-gray-200">{formatRelative(s.created_at)}</span>
                 <span className="text-sm text-gray-400 tabular-nums">{formatSessionTime(s.duration_seconds)}</span>
               </div>
             ))}
