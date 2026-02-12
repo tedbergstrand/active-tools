@@ -5,16 +5,17 @@ const SettingsContext = createContext({});
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState({});
+  const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    settingsApi.get().then(setSettings).catch(() => setLoadError(true));
+    settingsApi.get().then(data => { setSettings(data); setLoaded(true); }).catch(() => { setLoadError(true); setLoaded(true); });
   }, []);
 
   const refresh = () => settingsApi.get().then(setSettings).catch(() => {});
 
   return (
-    <SettingsContext.Provider value={{ settings, refresh, loadError }}>
+    <SettingsContext.Provider value={{ settings, loaded, refresh, loadError }}>
       {children}
     </SettingsContext.Provider>
   );

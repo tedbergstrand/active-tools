@@ -12,12 +12,15 @@ import { useSettings } from '../settings/SettingsContext.jsx';
 
 export function AppShell() {
   const toolSession = useToolSession();
-  const { settings } = useSettings();
+  const { settings, loaded } = useSettings();
 
   const handleStartNext = useCallback((nextTool) => {
     const config = nextTool.default_config ? JSON.parse(nextTool.default_config) : {};
     toolSession.startSession(nextTool, config);
   }, [toolSession]);
+
+  // Wait for settings to load before deciding onboarding vs app
+  if (!loaded) return null;
 
   if (settings.onboarding_completed !== 'true') {
     return <OnboardingWizard />;
