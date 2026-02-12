@@ -12,6 +12,83 @@ router.get('/', (req, res) => {
   res.json(db.prepare(sql).all(...params));
 });
 
+// Must be registered before /:id to avoid being caught by param route
+router.get('/active/today', (req, res) => {
+  const plan = db.prepare('SELECT * FROM plans WHERE is_active = 1').get();
+  if (!plan) return res.json({ plan: null, workouts: [] });
+
+  const today = new Date().getDay(); // 0=Sunday, 6=Saturday
+
+  const weeks = db.prepare('SELECT * FROM plan_weeks WHERE plan_id = ? ORDER BY week_number').all(plan.id);
+  const weekIds = weeks.map(w => w.id);
+  if (!weekIds.length) return res.json({ plan, workouts: [] });
+
+  const allWorkouts = db.prepare(
+    `SELECT * FROM plan_workouts WHERE plan_week_id IN (${weekIds.map(() => '?').join(',')}) AND day_of_week = ? ORDER BY plan_week_id`
+  ).all(...weekIds, today);
+
+  const workoutIds = allWorkouts.map(w => w.id);
+  const allExercises = workoutIds.length
+    ? db.prepare(`
+        SELECT pwe.*, e.name as exercise_name, e.default_metric
+        FROM plan_workout_exercises pwe
+        JOIN exercises e ON e.id = pwe.exercise_id
+        WHERE pwe.plan_workout_id IN (${workoutIds.map(() => '?').join(',')})
+        ORDER BY pwe.sort_order
+      `).all(...workoutIds)
+    : [];
+
+  const exercisesByWorkout = {};
+  for (const ex of allExercises) {
+    (exercisesByWorkout[ex.plan_workout_id] ??= []).push(ex);
+  }
+
+  // Check if logged today
+  const todayDate = new Date().toISOString().split('T')[0];
+  const loggedIds = workoutIds.length
+    ? db.prepare(
+        `SELECT DISTINCT plan_workout_id FROM workouts WHERE plan_workout_id IN (${workoutIds.map(() => '?').join(',')}) AND date = ?`
+      ).all(...workoutIds, todayDate).map(r => r.plan_workout_id)
+    : [];
+
+  const workouts = allWorkouts.map(w => ({
+    ...w,
+    exercises: exercisesByWorkout[w.id] || [],
+    logged_today: loggedIds.includes(w.id),
+  }));
+
+  res.json({ plan, workouts });
+});
+
+router.get('/:id/progress', (req, res) => {
+  const plan = db.prepare('SELECT * FROM plans WHERE id = ?').get(req.params.id);
+  if (!plan) return res.status(404).json({ error: 'Plan not found' });
+
+  const weeks = db.prepare('SELECT id FROM plan_weeks WHERE plan_id = ?').all(plan.id);
+  const weekIds = weeks.map(w => w.id);
+  if (!weekIds.length) return res.json({ completions: {} });
+
+  const allWorkouts = db.prepare(
+    `SELECT id FROM plan_workouts WHERE plan_week_id IN (${weekIds.map(() => '?').join(',')})`
+  ).all(...weekIds);
+  const workoutIds = allWorkouts.map(w => w.id);
+
+  if (!workoutIds.length) return res.json({ completions: {} });
+
+  const logged = db.prepare(
+    `SELECT plan_workout_id, COUNT(*) as count FROM workouts
+     WHERE plan_workout_id IN (${workoutIds.map(() => '?').join(',')})
+     GROUP BY plan_workout_id`
+  ).all(...workoutIds);
+
+  const completions = {};
+  for (const row of logged) {
+    completions[row.plan_workout_id] = row.count;
+  }
+
+  res.json({ completions });
+});
+
 router.get('/:id', (req, res) => {
   const plan = db.prepare('SELECT * FROM plans WHERE id = ?').get(req.params.id);
   if (!plan) return res.status(404).json({ error: 'Plan not found' });

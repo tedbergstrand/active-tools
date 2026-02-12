@@ -25,13 +25,14 @@ function getExerciseType(exercise) {
   return 'general';
 }
 
-export function WorkoutForm() {
+export function WorkoutForm({ initialData, workoutId }) {
   const navigate = useNavigate();
   const { category: urlCategory } = useParams();
   const [settings, setSettings] = useState({});
   const [saving, setSaving] = useState(false);
+  const isEditMode = Boolean(workoutId);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => initialData ? { ...initialData } : {
     category: urlCategory || 'roped',
     date: todayISO(),
     duration_minutes: '',
@@ -74,9 +75,14 @@ export function WorkoutForm() {
     setSaving(true);
     try {
       const payload = {
-        ...form,
+        category: form.category,
+        date: form.date,
         duration_minutes: form.duration_minutes ? Number(form.duration_minutes) : null,
+        location: form.location,
+        notes: form.notes,
         rpe: form.rpe ? Number(form.rpe) : null,
+        plan_workout_id: form.plan_workout_id || null,
+        tool_session_id: form.tool_session_id || null,
         exercises: form.exercises
           .filter(ex => ex.exercise_id)
           .map((ex, i) => ({
@@ -86,8 +92,13 @@ export function WorkoutForm() {
             sets: ex.sets.filter(s => Object.values(s).some(v => v)),
           })),
       };
-      const result = await workoutsApi.create(payload);
-      navigate(`/workout/${result.id}`);
+      if (isEditMode) {
+        await workoutsApi.update(workoutId, payload);
+        navigate(`/workout/${workoutId}`);
+      } else {
+        const result = await workoutsApi.create(payload);
+        navigate(`/workout/${result.id}`);
+      }
     } catch (err) {
       alert(err.message);
     } finally {
@@ -160,7 +171,7 @@ export function WorkoutForm() {
       <div className="flex justify-end gap-3 pt-4 border-t border-[#2e3347]">
         <Button type="button" variant="ghost" onClick={() => navigate(-1)}>Cancel</Button>
         <Button type="submit" disabled={saving}>
-          {saving ? 'Saving...' : 'Save Workout'}
+          {saving ? 'Saving...' : isEditMode ? 'Update Workout' : 'Save Workout'}
         </Button>
       </div>
     </form>

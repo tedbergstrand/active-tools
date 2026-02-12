@@ -79,6 +79,80 @@ export function useFrequencyData(params = {}) {
   return { frequency, loading };
 }
 
+export function useStreak() {
+  const [streak, setStreak] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    progressApi.streak({ signal: controller.signal })
+      .then(data => { if (!cancelled) setStreak(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, []);
+
+  return { streak, loading };
+}
+
+export function useTrends(params = {}) {
+  const [trends, setTrends] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const key = JSON.stringify(params);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    setLoading(true);
+    progressApi.trends(params, { signal: controller.signal })
+      .then(data => { if (!cancelled) setTrends(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [key]);
+
+  return { trends, loading };
+}
+
+export function useDistribution(params = {}) {
+  const [distribution, setDistribution] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const key = JSON.stringify(params);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    setLoading(true);
+    progressApi.distribution(params, { signal: controller.signal })
+      .then(data => { if (!cancelled) setDistribution(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [key]);
+
+  return { distribution, loading };
+}
+
+export function useRpeTrend(params = {}) {
+  const [rpeTrend, setRpeTrend] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const key = JSON.stringify(params);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    setLoading(true);
+    progressApi.rpeTrend(params, { signal: controller.signal })
+      .then(data => { if (!cancelled) setRpeTrend(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [key]);
+
+  return { rpeTrend, loading };
+}
+
 export function usePersonalRecords(params = {}) {
   const [records, setRecords] = useState(null);
   const [loading, setLoading] = useState(true);

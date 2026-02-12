@@ -8,7 +8,8 @@ import { PageLoading } from '../components/common/LoadingSpinner.jsx';
 import { CATEGORIES, SEND_TYPES } from '../utils/constants.js';
 import { formatDate } from '../utils/dates.js';
 import { formatDuration, formatWeight, formatSeconds } from '../utils/formatters.js';
-import { Clock, MapPin, Gauge, Trash2 } from 'lucide-react';
+import { Clock, MapPin, Gauge, Trash2, Pencil, Copy } from 'lucide-react';
+import { todayISO } from '../utils/dates.js';
 import { workoutsApi } from '../api/workouts.js';
 
 const categoryColors = { roped: 'blue', bouldering: 'amber', traditional: 'emerald' };
@@ -21,6 +22,36 @@ export function WorkoutDetail() {
   if (loading) return <PageLoading />;
   if (!workout) return <div className="text-center py-12 text-gray-500">Workout not found</div>;
 
+  const handleUseAsTemplate = () => {
+    const initialData = {
+      category: workout.category,
+      date: todayISO(),
+      duration_minutes: '',
+      location: workout.location || '',
+      notes: '',
+      rpe: '',
+      exercises: (workout.exercises || []).map(ex => ({
+        exercise_id: ex.exercise_id,
+        exerciseData: { category: ex.exercise_category, subcategory: ex.subcategory },
+        notes: ex.notes || '',
+        sets: (ex.sets || []).map(s => ({
+          grade: s.grade || '',
+          send_type: s.send_type || '',
+          wall_angle: s.wall_angle || '',
+          route_name: s.route_name || '',
+          reps: s.reps ?? '',
+          weight_kg: s.weight_kg ?? '',
+          duration_seconds: s.duration_seconds ?? '',
+          grip_type: s.grip_type || '',
+          edge_size_mm: s.edge_size_mm ?? '',
+          rest_seconds: s.rest_seconds ?? '',
+          completed: 1,
+        })),
+      })),
+    };
+    navigate('/log', { state: { initialData } });
+  };
+
   const handleDelete = async () => {
     if (!confirm('Delete this workout?')) return;
     await workoutsApi.delete(id);
@@ -30,7 +61,11 @@ export function WorkoutDetail() {
   return (
     <div className="space-y-6 max-w-3xl">
       <Header title="Workout Detail">
-        <Button variant="danger" size="sm" onClick={handleDelete}><Trash2 size={16} /> Delete</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={handleUseAsTemplate}><Copy size={16} /> Template</Button>
+          <Button variant="secondary" size="sm" onClick={() => navigate(`/workout/${id}/edit`)}><Pencil size={16} /> Edit</Button>
+          <Button variant="danger" size="sm" onClick={handleDelete}><Trash2 size={16} /> Delete</Button>
+        </div>
       </Header>
 
       <Card className="p-5">

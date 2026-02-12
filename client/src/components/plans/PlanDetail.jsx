@@ -2,12 +2,43 @@ import { Badge } from '../common/Badge.jsx';
 import { Card, CardContent } from '../common/Card.jsx';
 import { Button } from '../common/Button.jsx';
 import { CATEGORIES, DAYS_OF_WEEK } from '../../utils/constants.js';
-import { Calendar, Target, Zap, Dumbbell } from 'lucide-react';
+import { todayISO } from '../../utils/dates.js';
+import { Calendar, Target, Zap, Dumbbell, CheckCircle2, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const categoryColors = { roped: 'blue', bouldering: 'amber', traditional: 'emerald', mixed: 'purple' };
 
-export function PlanDetail({ plan, onActivate, onDeactivate }) {
+function buildInitialDataFromPlanWorkout(workout) {
+  return {
+    category: workout.category,
+    date: todayISO(),
+    duration_minutes: '',
+    location: '',
+    notes: `Plan: ${workout.title}`,
+    rpe: '',
+    plan_workout_id: workout.id,
+    exercises: (workout.exercises || []).map(ex => ({
+      exercise_id: ex.exercise_id,
+      exerciseData: { category: workout.category },
+      notes: ex.notes || '',
+      sets: Array.from({ length: ex.target_sets || 1 }, () => ({
+        grade: ex.target_grade || '',
+        reps: ex.target_reps ?? '',
+        weight_kg: ex.target_weight ?? '',
+        duration_seconds: ex.target_duration ?? '',
+        send_type: '',
+        wall_angle: '',
+        route_name: '',
+        grip_type: '',
+        edge_size_mm: '',
+        rest_seconds: '',
+        completed: 1,
+      })),
+    })),
+  };
+}
+
+export function PlanDetail({ plan, onActivate, onDeactivate, progress }) {
   const navigate = useNavigate();
 
   if (!plan) return null;
@@ -48,16 +79,24 @@ export function PlanDetail({ plan, onActivate, onDeactivate }) {
             <h3 className="font-semibold">Week {week.week_number}{week.focus ? ` — ${week.focus}` : ''}</h3>
           </div>
           <CardContent className="space-y-4">
-            {week.workouts?.map(workout => (
+            {week.workouts?.map(workout => {
+              const completionCount = progress?.completions?.[workout.id] || 0;
+              return (
               <div key={workout.id} className="border border-[#2e3347] rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <div>
+                  <div className="flex items-center gap-2">
+                    {progress && (
+                      completionCount > 0
+                        ? <CheckCircle2 size={16} className="text-emerald-400" />
+                        : <Circle size={16} className="text-gray-600" />
+                    )}
                     <span className="font-medium">{workout.title}</span>
-                    <span className="text-sm text-gray-500 ml-2">{DAYS_OF_WEEK[workout.day_of_week]}</span>
+                    <span className="text-sm text-gray-500 ml-1">{DAYS_OF_WEEK[workout.day_of_week]}</span>
+                    {completionCount > 1 && <span className="text-xs text-gray-500">&times;{completionCount}</span>}
                   </div>
                   {plan.is_active && (
                     <Button size="sm" variant="ghost"
-                      onClick={() => navigate(`/log/${workout.category}`)}>
+                      onClick={() => navigate('/log', { state: { initialData: buildInitialDataFromPlanWorkout(workout) } })}>
                       <Dumbbell size={14} /> Log This
                     </Button>
                   )}
@@ -78,7 +117,8 @@ export function PlanDetail({ plan, onActivate, onDeactivate }) {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       ))}

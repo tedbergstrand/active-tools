@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '../components/common/Card.jsx';
 import { Select } from '../components/common/Select.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { settingsApi } from '../api/settings.js';
-import { Save } from 'lucide-react';
+import { Save, Download } from 'lucide-react';
 
 const gradeSystemOptions = [
   { value: 'yds', label: 'Yosemite Decimal System (5.10a)' },
@@ -85,6 +85,18 @@ export function Settings() {
           <Select label="Vibration" options={boolOptions}
             value={settings.timer_vibration || 'true'}
             onChange={e => update('timer_vibration', e.target.value)} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><h3 className="font-semibold">Data</h3></CardHeader>
+        <CardContent className="flex gap-3">
+          <Button variant="secondary" onClick={() => window.open('/api/export?format=csv')}>
+            <Download size={16} /> Export CSV
+          </Button>
+          <Button variant="secondary" onClick={() => window.open('/api/export?format=json')}>
+            <Download size={16} /> Export JSON
+          </Button>
         </CardContent>
       </Card>
 

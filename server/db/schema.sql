@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS workouts (
   notes TEXT,
   rpe INTEGER CHECK(rpe BETWEEN 1 AND 10),
   plan_workout_id INTEGER REFERENCES plan_workouts(id) ON DELETE SET NULL,
+  tool_session_id INTEGER REFERENCES tool_sessions(id) ON DELETE SET NULL,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -114,6 +115,8 @@ CREATE INDEX IF NOT EXISTS idx_workout_sets_exercise ON workout_sets(workout_exe
 CREATE INDEX IF NOT EXISTS idx_exercises_category ON exercises(category);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_exercises_name_category ON exercises(name, category);
 CREATE INDEX IF NOT EXISTS idx_workout_sets_grade ON workout_sets(grade);
+CREATE INDEX IF NOT EXISTS idx_workouts_tool_session ON workouts(tool_session_id);
+CREATE INDEX IF NOT EXISTS idx_workouts_plan_workout ON workouts(plan_workout_id);
 CREATE INDEX IF NOT EXISTS idx_plans_active ON plans(is_active);
 CREATE INDEX IF NOT EXISTS idx_plan_workouts_week ON plan_workouts(plan_week_id);
 CREATE INDEX IF NOT EXISTS idx_plan_workout_exercises_workout ON plan_workout_exercises(plan_workout_id);

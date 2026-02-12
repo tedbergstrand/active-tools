@@ -13,4 +13,7 @@ db.pragma('foreign_keys = ON');
 const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
 db.exec(schema);
 
+// Migrations for existing databases
+try { db.exec('ALTER TABLE workouts ADD COLUMN tool_session_id INTEGER REFERENCES tool_sessions(id) ON DELETE SET NULL'); } catch (e) { /* column already exists */ }
+
 export default db;

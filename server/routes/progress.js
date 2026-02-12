@@ -112,6 +112,106 @@ router.get('/frequency', (req, res) => {
   res.json(frequency);
 });
 
+router.get('/streak', (req, res) => {
+  const dates = db.prepare(
+    `SELECT DISTINCT date FROM workouts ORDER BY date DESC`
+  ).all().map(r => r.date);
+
+  if (dates.length === 0) return res.json({ current: 0, longest: 0 });
+
+  // Calculate current streak
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  let current = 0;
+
+  if (dates[0] === today || dates[0] === yesterday) {
+    let checkDate = new Date(dates[0]);
+    const dateSet = new Set(dates);
+    while (dateSet.has(checkDate.toISOString().split('T')[0])) {
+      current++;
+      checkDate = new Date(checkDate.getTime() - 86400000);
+    }
+  }
+
+  // Calculate longest streak
+  let longest = 0;
+  let streak = 1;
+  for (let i = 1; i < dates.length; i++) {
+    const diff = (new Date(dates[i - 1]) - new Date(dates[i])) / 86400000;
+    if (diff === 1) {
+      streak++;
+    } else {
+      longest = Math.max(longest, streak);
+      streak = 1;
+    }
+  }
+  longest = Math.max(longest, streak);
+
+  res.json({ current, longest });
+});
+
+router.get('/trends', (req, res) => {
+  const { category } = req.query;
+  const days = parseDays(req.query.days, 30);
+  const now = Date.now();
+  const currentStart = new Date(now - days * 86400000).toISOString().split('T')[0];
+  const previousStart = new Date(now - days * 2 * 86400000).toISOString().split('T')[0];
+  const currentEnd = new Date(now).toISOString().split('T')[0];
+
+  function periodStats(since, until) {
+    let where = 'WHERE w.date >= ? AND w.date <= ?';
+    const params = [since, until];
+    if (category) { where += ' AND w.category = ?'; params.push(category); }
+
+    const workouts = db.prepare(`SELECT COUNT(*) as c FROM workouts w ${where}`).get(...params).c;
+    const duration = db.prepare(`SELECT COALESCE(SUM(duration_minutes),0) as d FROM workouts w ${where}`).get(...params).d;
+    const rpe = db.prepare(`SELECT ROUND(AVG(rpe),1) as r FROM workouts w ${where} AND rpe IS NOT NULL`).get(...params).r;
+    return { workouts, duration, rpe };
+  }
+
+  const current = periodStats(currentStart, currentEnd);
+  const previous = periodStats(previousStart, currentStart);
+
+  function pctChange(cur, prev) {
+    if (!prev || prev === 0) return cur > 0 ? 100 : 0;
+    return Math.round(((cur - prev) / prev) * 100);
+  }
+
+  res.json({
+    workouts: { value: current.workouts, change: pctChange(current.workouts, previous.workouts) },
+    duration: { value: current.duration, change: pctChange(current.duration, previous.duration) },
+    rpe: { value: current.rpe, change: current.rpe && previous.rpe ? Math.round((current.rpe - previous.rpe) * 10) / 10 : 0 },
+  });
+});
+
+router.get('/distribution', (req, res) => {
+  const days = parseDays(req.query.days, 90);
+  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+
+  const rows = db.prepare(`
+    SELECT category, COUNT(*) as sessions, COALESCE(SUM(duration_minutes), 0) as total_minutes
+    FROM workouts WHERE date >= ?
+    GROUP BY category
+  `).all(since);
+
+  res.json(rows);
+});
+
+router.get('/rpe-trend', (req, res) => {
+  const days = parseDays(req.query.days, 90);
+  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+
+  const rows = db.prepare(`
+    SELECT date, ROUND(AVG(rpe), 1) as avg_rpe
+    FROM workouts
+    WHERE date >= ? AND rpe IS NOT NULL
+    GROUP BY date
+    ORDER BY date
+  `).all(since);
+
+  res.json(rows);
+});
+
 router.get('/personal-records', (req, res) => {
   const { category } = req.query;
 

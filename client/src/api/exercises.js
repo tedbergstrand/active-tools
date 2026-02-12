@@ -6,5 +6,6 @@ export const exercisesApi = {
     return api.get(`/exercises${qs ? '?' + qs : ''}`);
   },
   get: (id) => api.get(`/exercises/${id}`),
+  recent: () => api.get('/exercises/recent'),
   create: (data) => api.post('/exercises', data),
 };

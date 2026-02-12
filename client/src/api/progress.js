@@ -21,4 +21,17 @@ export const progressApi = {
     const qs = new URLSearchParams(params).toString();
     return api.get(`/progress/personal-records${qs ? '?' + qs : ''}`, options);
   },
+  streak: (options) => api.get('/progress/streak', options),
+  trends: (params = {}, options) => {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/progress/trends${qs ? '?' + qs : ''}`, options);
+  },
+  distribution: (params = {}, options) => {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/progress/distribution${qs ? '?' + qs : ''}`, options);
+  },
+  rpeTrend: (params = {}, options) => {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/progress/rpe-trend${qs ? '?' + qs : ''}`, options);
+  },
 };

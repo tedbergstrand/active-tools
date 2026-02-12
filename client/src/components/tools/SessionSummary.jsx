@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Clock, Hash, Sparkles, Check, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Trophy, Clock, Hash, Sparkles, Check, Loader2, Dumbbell } from 'lucide-react';
 import { Button } from '../common/Button.jsx';
 import { useSpeech, formatTimeAsSpeech } from '../../hooks/useSpeech.js';
 import { toolsApi } from '../../api/tools.js';
 import { formatSessionTime } from '../../utils/buildSteps.js';
+import { todayISO } from '../../utils/dates.js';
 
 // Suggested follow-up tools by category
 const FOLLOW_UPS = {
@@ -24,9 +26,11 @@ const FOLLOW_UPS = {
 };
 
 export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDiscard, onStartNext }) {
+  const navigate = useNavigate();
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedSessionId, setSavedSessionId] = useState(null);
   const [chaining, setChaining] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const { speak } = useSpeech();
@@ -51,7 +55,7 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
   const handleSave = async () => {
     if (saving || saved) return;
     setSaving(true);
-    await onSave({
+    const result = await onSave({
       tool_id: tool.id,
       duration_seconds: elapsed,
       config,
@@ -59,6 +63,24 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
       notes: notes || null,
     });
     setSaved(true);
+    if (result?.id) setSavedSessionId(result.id);
+  };
+
+  const handleLogAsWorkout = () => {
+    navigate('/log', {
+      state: {
+        initialData: {
+          category: 'traditional',
+          date: todayISO(),
+          duration_minutes: Math.round(elapsed / 60) || '',
+          location: '',
+          notes: `Tool: ${tool?.name || 'Training Tool'}${notes ? '\n' + notes : ''}`,
+          rpe: '',
+          tool_session_id: savedSessionId,
+          exercises: [],
+        },
+      },
+    });
   };
 
   // Auto-close after save (only when not chaining to next tool)
@@ -109,6 +131,12 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
         </Button>
         <Button variant="secondary" onClick={onDiscard}>Discard</Button>
       </div>
+
+      {saved && (
+        <Button variant="secondary" onClick={handleLogAsWorkout} className="w-full">
+          <Dumbbell size={18} /> Log as Workout
+        </Button>
+      )}
 
       {/* Session chaining suggestions */}
       {onStartNext && suggestions.length > 0 && followUp?.label && (

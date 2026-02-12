@@ -52,14 +52,14 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { category, date, duration_minutes, location, notes, rpe, plan_workout_id, exercises } = req.body;
+  const { category, date, duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id, exercises } = req.body;
   if (!category) return res.status(400).json({ error: 'Category required' });
 
   const result = db.transaction(() => {
     const w = db.prepare(`
-      INSERT INTO workouts (category, date, duration_minutes, location, notes, rpe, plan_workout_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(category, date || new Date().toISOString().split('T')[0], duration_minutes, location, notes, rpe, plan_workout_id);
+      INSERT INTO workouts (category, date, duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(category, date || new Date().toISOString().split('T')[0], duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id || null);
 
     const workoutId = w.lastInsertRowid;
 
@@ -91,15 +91,15 @@ router.post('/', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-  const { category, date, duration_minutes, location, notes, rpe, exercises } = req.body;
+  const { category, date, duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id, exercises } = req.body;
   const existing = db.prepare('SELECT id FROM workouts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Workout not found' });
 
   db.transaction(() => {
     db.prepare(`
-      UPDATE workouts SET category=?, date=?, duration_minutes=?, location=?, notes=?, rpe=?
+      UPDATE workouts SET category=?, date=?, duration_minutes=?, location=?, notes=?, rpe=?, plan_workout_id=?, tool_session_id=?
       WHERE id=?
-    `).run(category, date, duration_minutes, location, notes, rpe, req.params.id);
+    `).run(category, date, duration_minutes, location, notes, rpe, plan_workout_id || null, tool_session_id || null, req.params.id);
 
     // Replace exercises and sets (CASCADE handles workout_sets)
     db.prepare('DELETE FROM workout_exercises WHERE workout_id = ?').run(req.params.id);

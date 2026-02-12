@@ -13,6 +13,18 @@ router.get('/', (req, res) => {
   res.json(db.prepare(sql).all(...params));
 });
 
+router.get('/recent', (req, res) => {
+  const recent = db.prepare(`
+    SELECT we.exercise_id, MAX(w.date) as last_used
+    FROM workout_exercises we
+    JOIN workouts w ON w.id = we.workout_id
+    GROUP BY we.exercise_id
+    ORDER BY last_used DESC
+    LIMIT 10
+  `).all();
+  res.json(recent.map(r => r.exercise_id));
+});
+
 router.get('/:id', (req, res) => {
   const exercise = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
   if (!exercise) return res.status(404).json({ error: 'Exercise not found' });

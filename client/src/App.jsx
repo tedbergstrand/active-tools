@@ -8,6 +8,7 @@ import { Bouldering } from './pages/Bouldering.jsx';
 import { TraditionalExercise } from './pages/TraditionalExercise.jsx';
 import { LogWorkout } from './pages/LogWorkout.jsx';
 import { WorkoutDetail } from './pages/WorkoutDetail.jsx';
+import { EditWorkout } from './pages/EditWorkout.jsx';
 import { Plans } from './pages/Plans.jsx';
 import { PlanDetailPage } from './pages/PlanDetailPage.jsx';
 import { Progress } from './pages/Progress.jsx';
@@ -29,6 +30,7 @@ export default function App() {
               <Route path="/training" element={<TraditionalExercise />} />
               <Route path="/log/:category?" element={<LogWorkout />} />
               <Route path="/workout/:id" element={<WorkoutDetail />} />
+              <Route path="/workout/:id/edit" element={<EditWorkout />} />
               <Route path="/plans" element={<Plans />} />
               <Route path="/plans/:id" element={<PlanDetailPage />} />
               <Route path="/progress" element={<Progress />} />

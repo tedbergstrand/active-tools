@@ -8,15 +8,26 @@ import { ActivePlanBanner } from '../components/plans/ActivePlanBanner.jsx';
 import { WorkoutCard } from '../components/workout/WorkoutCard.jsx';
 import { FrequencyChart } from '../components/progress/FrequencyChart.jsx';
 import { useWorkouts } from '../hooks/useWorkouts.js';
-import { useProgressSummary } from '../hooks/useProgress.js';
+import { useProgressSummary, useStreak } from '../hooks/useProgress.js';
 import { toolsApi } from '../api/tools.js';
-import { Plus, Mountain, Gem, Dumbbell, Wrench, Activity, Clock, Gauge, Layers, Play, ChevronRight } from 'lucide-react';
+import { plansApi } from '../api/plans.js';
+import { todayISO } from '../utils/dates.js';
+import { Plus, Mountain, Gem, Dumbbell, Wrench, Activity, Clock, Gauge, Layers, Play, ChevronRight, Calendar, CheckCircle2, Flame } from 'lucide-react';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { workouts, loading } = useWorkouts({ limit: 5 });
   const { summary } = useProgressSummary({ days: 30 });
+  const { streak } = useStreak();
   const [toolHint, setToolHint] = useState(null); // { type: 'favorite'|'recent'|'discover', tool? }
+  const [todayPlan, setTodayPlan] = useState(null);
+
+  // Load today's planned workouts
+  useEffect(() => {
+    plansApi.todayPlan().then(data => {
+      if (data.plan && data.workouts?.length) setTodayPlan(data);
+    }).catch(() => {});
+  }, []);
 
   // Load a smart tool suggestion for the training card
   useEffect(() => {
@@ -53,6 +64,53 @@ export function Dashboard() {
 
       <ActivePlanBanner />
 
+      {todayPlan && todayPlan.workouts.length > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Calendar size={18} className="text-blue-400" />
+            <h3 className="font-semibold">Today's Plan</h3>
+          </div>
+          {todayPlan.workouts.map(w => (
+            <div key={w.id} className="flex items-center justify-between py-2 border-b border-[#2e3347] last:border-0">
+              <div className="flex items-center gap-2">
+                {w.logged_today
+                  ? <CheckCircle2 size={16} className="text-emerald-400" />
+                  : <div className="w-4 h-4 rounded-full border border-gray-600" />}
+                <span className={w.logged_today ? 'text-gray-500 line-through' : ''}>{w.title}</span>
+              </div>
+              {!w.logged_today && (
+                <Button size="sm" variant="ghost" onClick={() => navigate('/log', {
+                  state: {
+                    initialData: {
+                      category: w.category,
+                      date: todayISO(),
+                      duration_minutes: '',
+                      location: '',
+                      notes: `Plan: ${w.title}`,
+                      rpe: '',
+                      plan_workout_id: w.id,
+                      exercises: (w.exercises || []).map(ex => ({
+                        exercise_id: ex.exercise_id,
+                        exerciseData: { category: w.category },
+                        notes: ex.notes || '',
+                        sets: Array.from({ length: ex.target_sets || 1 }, () => ({
+                          grade: ex.target_grade || '', reps: ex.target_reps ?? '',
+                          weight_kg: ex.target_weight ?? '', duration_seconds: ex.target_duration ?? '',
+                          send_type: '', wall_angle: '', route_name: '', grip_type: '',
+                          edge_size_mm: '', rest_seconds: '', completed: 1,
+                        })),
+                      })),
+                    },
+                  },
+                })}>
+                  <Dumbbell size={14} /> Log
+                </Button>
+              )}
+            </div>
+          ))}
+        </Card>
+      )}
+
       {/* Training tools entry point — prominent on mobile */}
       {toolHint && (
         <button
@@ -80,7 +138,10 @@ export function Dashboard() {
         <StatCard icon={Activity} label="Workouts" value={summary?.totalWorkouts ?? '—'} sublabel="Last 30 days" />
         <StatCard icon={Clock} label="Total Time" value={summary?.totalDuration ? `${Math.round(summary.totalDuration / 60)}h` : '—'} sublabel="Last 30 days" color="text-emerald-400" />
         <StatCard icon={Gauge} label="Avg RPE" value={summary?.avgRpe ?? '—'} sublabel="Last 30 days" color="text-amber-400" />
-        <StatCard icon={Layers} label="Total Sets" value={summary?.totalSets ?? '—'} sublabel="Last 30 days" color="text-purple-400" />
+        {streak && streak.current > 0
+          ? <StatCard icon={Flame} label="Streak" value={`${streak.current}d`} sublabel={`Best: ${streak.longest}d`} color="text-orange-400" />
+          : <StatCard icon={Layers} label="Total Sets" value={summary?.totalSets ?? '—'} sublabel="Last 30 days" color="text-purple-400" />
+        }
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

@@ -6,6 +6,8 @@ export const plansApi = {
     return api.get(`/plans${qs ? '?' + qs : ''}`, options);
   },
   get: (id, options) => api.get(`/plans/${id}`, options),
+  todayPlan: (options) => api.get('/plans/active/today', options),
+  progress: (id, options) => api.get(`/plans/${id}/progress`, options),
   create: (data) => api.post('/plans', data),
   update: (id, data) => api.put(`/plans/${id}`, data),
   activate: (id) => api.post(`/plans/${id}/activate`),

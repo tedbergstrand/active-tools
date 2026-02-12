@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { PlanDetail } from '../components/plans/PlanDetail.jsx';
 import { PageLoading } from '../components/common/LoadingSpinner.jsx';
@@ -7,6 +8,12 @@ import { plansApi } from '../api/plans.js';
 export function PlanDetailPage() {
   const { id } = useParams();
   const { plan, loading, refetch } = usePlan(id);
+  const [progress, setProgress] = useState(null);
+
+  useEffect(() => {
+    if (!id) return;
+    plansApi.progress(id).then(setProgress).catch(() => {});
+  }, [id]);
 
   if (loading) return <PageLoading />;
   if (!plan) return <div className="text-center py-12 text-gray-500">Plan not found</div>;
@@ -21,5 +28,5 @@ export function PlanDetailPage() {
     refetch();
   };
 
-  return <PlanDetail plan={plan} onActivate={handleActivate} onDeactivate={handleDeactivate} />;
+  return <PlanDetail plan={plan} onActivate={handleActivate} onDeactivate={handleDeactivate} progress={progress} />;
 }

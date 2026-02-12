@@ -4,11 +4,16 @@ import { CATEGORIES } from '../../utils/constants.js';
 
 export function ExercisePicker({ value, onChange, category, className = '' }) {
   const [exercises, setExercises] = useState([]);
+  const [recentIds, setRecentIds] = useState([]);
 
   useEffect(() => {
     const params = category ? { category } : {};
     exercisesApi.list(params).then(setExercises);
   }, [category]);
+
+  useEffect(() => {
+    exercisesApi.recent().then(setRecentIds).catch(() => {});
+  }, []);
 
   const grouped = exercises.reduce((acc, ex) => {
     const cat = ex.category;
@@ -16,6 +21,10 @@ export function ExercisePicker({ value, onChange, category, className = '' }) {
     acc[cat].push(ex);
     return acc;
   }, {});
+
+  const recentExercises = recentIds
+    .map(id => exercises.find(ex => ex.id === id))
+    .filter(Boolean);
 
   return (
     <select
@@ -25,6 +34,13 @@ export function ExercisePicker({ value, onChange, category, className = '' }) {
         focus:outline-none focus:border-blue-500 ${className}`}
     >
       <option value="">Select exercise</option>
+      {recentExercises.length > 0 && (
+        <optgroup label="Recently Used">
+          {recentExercises.map(ex => (
+            <option key={`recent-${ex.id}`} value={ex.id}>{ex.name}</option>
+          ))}
+        </optgroup>
+      )}
       {Object.entries(grouped).map(([cat, exs]) => (
         <optgroup key={cat} label={CATEGORIES[cat]?.label || cat}>
           {exs.map(ex => (

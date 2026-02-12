@@ -8,6 +8,7 @@ import progressRouter from './routes/progress.js';
 import timersRouter from './routes/timers.js';
 import settingsRouter from './routes/settings.js';
 import toolsRouter from './routes/tools.js';
+import exportRouter from './routes/export.js';
 
 // Run seed on first import (creates tables + seed data if needed)
 import './db/seed.js';
@@ -25,6 +26,7 @@ app.use('/api/progress', progressRouter);
 app.use('/api/timer-presets', timersRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/tools', toolsRouter);
+app.use('/api/export', exportRouter);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
