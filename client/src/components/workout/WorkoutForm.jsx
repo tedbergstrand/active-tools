@@ -74,6 +74,10 @@ export function WorkoutForm({ initialData, workoutId }) {
     return () => { cancelled = true; };
   }, [form.category]);
 
+  const handleExerciseCreated = (created) => {
+    setAllExercises(prev => [...prev, created]);
+  };
+
   const updateForm = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const addExercise = () => {
@@ -188,6 +192,7 @@ export function WorkoutForm({ initialData, workoutId }) {
                 category={form.category}
                 exercises={allExercises}
                 recentIds={recentExerciseIds}
+                onExerciseCreated={handleExerciseCreated}
                 onChange={(id, data) => {
                   updateExercise(i, { exercise_id: id, exerciseData: data });
                 }}

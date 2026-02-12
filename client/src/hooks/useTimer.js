@@ -99,6 +99,13 @@ export function useTimer() {
     const cp = currentPhaseRef.current;
     const cs = currentSetRef.current;
 
+    if (!ph.length) {
+      clearTimer();
+      releaseWakeLock();
+      setState(STATES.complete);
+      return;
+    }
+
     const nextPhase = cp + 1;
     if (nextPhase < ph.length) {
       setCurrentPhase(nextPhase);

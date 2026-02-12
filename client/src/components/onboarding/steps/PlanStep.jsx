@@ -4,11 +4,11 @@ import { Button } from '../../common/Button.jsx';
 import { plansApi } from '../../../api/plans.js';
 
 const PLAN_MAP = {
-  project: { roped: 'Route Projecting', bouldering: 'Bouldering Power', both: 'Route Projecting' },
-  fingers: { roped: 'Finger Strength', bouldering: 'Finger Strength', both: 'Finger Strength' },
-  fitness: { roped: 'General Fitness', bouldering: 'General Fitness', both: 'General Fitness' },
-  endurance: { roped: 'Power Endurance', bouldering: 'Power Endurance', both: 'Power Endurance' },
-  injury_prevention: { roped: 'Injury Prevention', bouldering: 'Injury Prevention', both: 'Injury Prevention' },
+  project: { roped: 'Route Projecting', bouldering: 'Bouldering Power', mixed: 'Route Projecting' },
+  fingers: { roped: 'Finger Strength', bouldering: 'Finger Strength', mixed: 'Finger Strength' },
+  fitness: { roped: 'General Fitness', bouldering: 'General Fitness', mixed: 'General Fitness' },
+  endurance: { roped: 'Power Endurance', bouldering: 'Power Endurance', mixed: 'Power Endurance' },
+  injury_prevention: { roped: 'Injury Prevention', bouldering: 'Injury Prevention', mixed: 'Injury Prevention' },
 };
 
 export function PlanStep({ goal, discipline, onComplete }) {

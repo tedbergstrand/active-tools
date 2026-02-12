@@ -58,6 +58,10 @@ router.put('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Preset not found' });
 
   const { name, mode, total_sets, phases } = req.body;
+  if (!name || !mode) return res.status(400).json({ error: 'Name and mode are required' });
+  const validModes = ['rest', 'hangboard', 'interval'];
+  if (!validModes.includes(mode)) return res.status(400).json({ error: 'Invalid mode' });
+
   db.transaction(() => {
     db.prepare('UPDATE timer_presets SET name=?, mode=?, total_sets=? WHERE id=?')
       .run(name, mode, total_sets, req.params.id);

@@ -39,10 +39,15 @@ router.post('/', (req, res) => {
   if (name.length > 200) return res.status(400).json({ error: 'Name too long' });
   const validMetrics = ['reps', 'grade', 'duration', 'weight'];
   if (default_metric && !validMetrics.includes(default_metric)) return res.status(400).json({ error: 'Invalid default_metric' });
-  const result = db.prepare(
-    'INSERT INTO exercises (name, category, subcategory, default_metric, description) VALUES (?, ?, ?, ?, ?)'
-  ).run(name, category, subcategory || null, default_metric || 'reps', description || null);
-  res.status(201).json({ id: result.lastInsertRowid, name, category, subcategory: subcategory || null, default_metric: default_metric || 'reps', description: description || null });
+  try {
+    const result = db.prepare(
+      'INSERT INTO exercises (name, category, subcategory, default_metric, description) VALUES (?, ?, ?, ?, ?)'
+    ).run(name, category, subcategory || null, default_metric || 'reps', description || null);
+    res.status(201).json({ id: result.lastInsertRowid, name, category, subcategory: subcategory || null, default_metric: default_metric || 'reps', description: description || null });
+  } catch (e) {
+    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(409).json({ error: 'An exercise with this name already exists in this category' });
+    throw e;
+  }
 });
 
 export default router;

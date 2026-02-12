@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import db from '../db/database.js';
-import { localDateISO, daysAgoISO } from '../lib/dates.js';
+import { localDateISO, daysAgoISO, prevDateISO, dateDiffDays } from '../lib/dates.js';
 
 const router = Router();
 
@@ -142,11 +142,11 @@ router.get('/streak', (req, res) => {
   let current = 0;
 
   if (dates[0] === today || dates[0] === yesterday) {
-    let checkDate = new Date(dates[0]);
+    let checkStr = dates[0];
     const dateSet = new Set(dates);
-    while (dateSet.has(checkDate.toISOString().split('T')[0])) {
+    while (dateSet.has(checkStr)) {
       current++;
-      checkDate = new Date(checkDate.getTime() - 86400000);
+      checkStr = prevDateISO(checkStr);
     }
   }
 
@@ -154,8 +154,7 @@ router.get('/streak', (req, res) => {
   let longest = 0;
   let streak = 1;
   for (let i = 1; i < dates.length; i++) {
-    const diff = (new Date(dates[i - 1]) - new Date(dates[i])) / 86400000;
-    if (diff === 1) {
+    if (dateDiffDays(dates[i - 1], dates[i]) === 1) {
       streak++;
     } else {
       longest = Math.max(longest, streak);
@@ -265,39 +264,48 @@ router.get('/personal-records', (req, res) => {
     .sort((a, b) => gradeRank(b.grade) - gradeRank(a.grade))
     .slice(0, 10);
 
-  // Max weight on weighted exercises
+  // Max weight on weighted exercises (with correct date via window function)
   const maxWeights = db.prepare(`
-    SELECT MAX(ws.weight_kg) as max_weight, e.name as exercise_name, w.date
-    FROM workout_sets ws
-    JOIN workout_exercises we ON we.id = ws.workout_exercise_id
-    JOIN workouts w ON w.id = we.workout_id
-    JOIN exercises e ON e.id = we.exercise_id
-    ${whereClause} AND ws.weight_kg IS NOT NULL AND ws.weight_kg > 0
-    GROUP BY e.name
+    WITH ranked AS (
+      SELECT ws.weight_kg as max_weight, e.name as exercise_name, w.date,
+        ROW_NUMBER() OVER (PARTITION BY e.name ORDER BY ws.weight_kg DESC, w.date DESC) as rn
+      FROM workout_sets ws
+      JOIN workout_exercises we ON we.id = ws.workout_exercise_id
+      JOIN workouts w ON w.id = we.workout_id
+      JOIN exercises e ON e.id = we.exercise_id
+      ${whereClause} AND ws.weight_kg IS NOT NULL AND ws.weight_kg > 0
+    )
+    SELECT max_weight, exercise_name, date FROM ranked WHERE rn = 1
     ORDER BY max_weight DESC
   `).all(...params);
 
   // Max reps
   const maxReps = db.prepare(`
-    SELECT MAX(ws.reps) as max_reps, e.name as exercise_name, w.date
-    FROM workout_sets ws
-    JOIN workout_exercises we ON we.id = ws.workout_exercise_id
-    JOIN workouts w ON w.id = we.workout_id
-    JOIN exercises e ON e.id = we.exercise_id
-    ${whereClause} AND ws.reps IS NOT NULL
-    GROUP BY e.name
+    WITH ranked AS (
+      SELECT ws.reps as max_reps, e.name as exercise_name, w.date,
+        ROW_NUMBER() OVER (PARTITION BY e.name ORDER BY ws.reps DESC, w.date DESC) as rn
+      FROM workout_sets ws
+      JOIN workout_exercises we ON we.id = ws.workout_exercise_id
+      JOIN workouts w ON w.id = we.workout_id
+      JOIN exercises e ON e.id = we.exercise_id
+      ${whereClause} AND ws.reps IS NOT NULL
+    )
+    SELECT max_reps, exercise_name, date FROM ranked WHERE rn = 1
     ORDER BY max_reps DESC
   `).all(...params);
 
   // Max duration
   const maxDurations = db.prepare(`
-    SELECT MAX(ws.duration_seconds) as max_duration, e.name as exercise_name, w.date
-    FROM workout_sets ws
-    JOIN workout_exercises we ON we.id = ws.workout_exercise_id
-    JOIN workouts w ON w.id = we.workout_id
-    JOIN exercises e ON e.id = we.exercise_id
-    ${whereClause} AND ws.duration_seconds IS NOT NULL
-    GROUP BY e.name
+    WITH ranked AS (
+      SELECT ws.duration_seconds as max_duration, e.name as exercise_name, w.date,
+        ROW_NUMBER() OVER (PARTITION BY e.name ORDER BY ws.duration_seconds DESC, w.date DESC) as rn
+      FROM workout_sets ws
+      JOIN workout_exercises we ON we.id = ws.workout_exercise_id
+      JOIN workouts w ON w.id = we.workout_id
+      JOIN exercises e ON e.id = we.exercise_id
+      ${whereClause} AND ws.duration_seconds IS NOT NULL
+    )
+    SELECT max_duration, exercise_name, date FROM ranked WHERE rn = 1
     ORDER BY max_duration DESC
   `).all(...params);
 
@@ -322,7 +330,7 @@ router.get('/recovery', (req, res) => {
 
   // Days since last training
   const daysSinceTraining = recentWorkouts.length > 0
-    ? Math.floor((Date.now() - new Date(recentWorkouts[0].date).getTime()) / 86400000)
+    ? dateDiffDays(today, recentWorkouts[0].date)
     : 999;
 
   if (daysSinceTraining >= 3) {
@@ -334,11 +342,11 @@ router.get('/recovery', (req, res) => {
 
   // Consecutive training days (from most recent)
   let consecutive = 0;
-  let checkDate = new Date(trainingDates[0]);
+  let checkStr = trainingDates[0];
   const dateSet = new Set(trainingDates);
-  while (dateSet.has(checkDate.toISOString().split('T')[0])) {
+  while (dateSet.has(checkStr)) {
     consecutive++;
-    checkDate = new Date(checkDate.getTime() - 86400000);
+    checkStr = prevDateISO(checkStr);
   }
 
   // Days since last rest (first gap in training dates)
@@ -503,7 +511,11 @@ router.post('/check-prs', (req, res) => {
   const unique = {};
   for (const pr of prs) {
     const key = `${pr.exercise_name}_${pr.type}`;
-    if (!unique[key] || pr.value > unique[key].value) unique[key] = pr;
+    if (!unique[key]) { unique[key] = pr; continue; }
+    const better = pr.type === 'grade'
+      ? gradeRank(pr.value) > gradeRank(unique[key].value)
+      : pr.value > unique[key].value;
+    if (better) unique[key] = pr;
   }
 
   res.json({ prs: Object.values(unique) });
@@ -685,43 +697,42 @@ router.get('/dashboard', (req, res) => {
     const today = localDateISO();
     const yesterday = daysAgoISO(1);
     if (dates[0] === today || dates[0] === yesterday) {
-      let checkDate = new Date(dates[0]);
+      let checkStr = dates[0];
       const dateSet = new Set(dates);
-      while (dateSet.has(checkDate.toISOString().split('T')[0])) {
+      while (dateSet.has(checkStr)) {
         current++;
-        checkDate = new Date(checkDate.getTime() - 86400000);
+        checkStr = prevDateISO(checkStr);
       }
     }
     let streak = 1;
     for (let i = 1; i < dates.length; i++) {
-      const diff = (new Date(dates[i - 1]) - new Date(dates[i])) / 86400000;
-      if (diff === 1) streak++;
+      if (dateDiffDays(dates[i - 1], dates[i]) === 1) streak++;
       else { longest = Math.max(longest, streak); streak = 1; }
     }
     longest = Math.max(longest, streak);
   }
 
   // Recovery (inline, same logic as /recovery but without early returns)
-  const today = localDateISO();
+  const todayStr = localDateISO();
   const recentWorkouts = db.prepare(`
     SELECT date, rpe, duration_minutes FROM workouts
     WHERE date >= date(?, '-30 days') AND NOT (duration_minutes = 0 AND rpe = 1)
     ORDER BY date DESC
-  `).all(today);
+  `).all(todayStr);
 
   let recovery = { status: 'good', nudge: null };
   if (recentWorkouts.length === 0) {
     recovery = { status: 'welcome_back', nudge: 'Welcome! Ready to start training?' };
   } else {
-    const daysSinceTraining = Math.floor((Date.now() - new Date(recentWorkouts[0].date).getTime()) / 86400000);
+    const daysSinceTraining = dateDiffDays(todayStr, recentWorkouts[0].date);
     if (daysSinceTraining >= 3) {
       recovery = { status: 'welcome_back', nudge: `Welcome back! It's been ${daysSinceTraining} days since your last session.` };
     } else {
       const trainingDates = [...new Set(recentWorkouts.map(w => w.date))].sort().reverse();
       let consecutive = 0;
-      let cd = new Date(trainingDates[0]);
+      let cs = trainingDates[0];
       const ds = new Set(trainingDates);
-      while (ds.has(cd.toISOString().split('T')[0])) { consecutive++; cd = new Date(cd.getTime() - 86400000); }
+      while (ds.has(cs)) { consecutive++; cs = prevDateISO(cs); }
 
       let highRpeStreak = 0;
       for (const date of trainingDates) {

@@ -6,8 +6,8 @@ export function GradeStep({ discipline, ropedGrade, boulderGrade, onRopedChange,
   const ropeSystem = settings.grade_system || 'yds';
   const boulderSystem = settings.boulder_grade_system || 'v_scale';
 
-  const showRoped = discipline === 'roped' || discipline === 'both';
-  const showBoulder = discipline === 'bouldering' || discipline === 'both';
+  const showRoped = discipline === 'roped' || discipline === 'mixed';
+  const showBoulder = discipline === 'bouldering' || discipline === 'mixed';
 
   return (
     <div className="space-y-6">

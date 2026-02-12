@@ -169,6 +169,14 @@ router.put('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Plan not found' });
 
   const { name, category, duration_weeks, difficulty, goal, description } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+  if (!category) return res.status(400).json({ error: 'Category is required' });
+  const validCats = ['roped', 'bouldering', 'traditional', 'mixed'];
+  if (!validCats.includes(category)) return res.status(400).json({ error: 'Invalid category' });
+  const weeks = Number(duration_weeks);
+  if (!Number.isInteger(weeks) || weeks < 1 || weeks > 52) return res.status(400).json({ error: 'Duration must be 1-52 weeks' });
+  if (difficulty && !['beginner', 'intermediate', 'advanced'].includes(difficulty)) return res.status(400).json({ error: 'Invalid difficulty' });
+
   db.prepare(`
     UPDATE plans SET name=?, category=?, duration_weeks=?, difficulty=?, goal=?, description=?
     WHERE id=?

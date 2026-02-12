@@ -2,6 +2,26 @@ import { Router } from 'express';
 import db from '../db/database.js';
 import { localDateISO } from '../lib/dates.js';
 
+const GRADE_ORDER = [
+  'VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9',
+  'V10', 'V11', 'V12', 'V13', 'V14', 'V15', 'V16', 'V17',
+  '5.5', '5.6', '5.7', '5.8', '5.9',
+  '5.10a', '5.10b', '5.10c', '5.10d',
+  '5.11a', '5.11b', '5.11c', '5.11d',
+  '5.12a', '5.12b', '5.12c', '5.12d',
+  '5.13a', '5.13b', '5.13c', '5.13d',
+  '5.14a', '5.14b', '5.14c', '5.14d',
+  '5.15a', '5.15b', '5.15c',
+];
+const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g, i]));
+function bestGrade(grades) {
+  if (!grades) return null;
+  return grades.split(',').reduce((best, g) => {
+    const r = GRADE_RANK[g] ?? -1;
+    return r > (GRADE_RANK[best] ?? -1) ? g : best;
+  }, null);
+}
+
 const router = Router();
 
 const VALID_CATEGORIES = ['roped', 'bouldering', 'traditional'];
@@ -62,7 +82,7 @@ router.get('/', (req, res) => {
     const ids = workouts.map(w => w.id);
     const exerciseSummaries = db.prepare(`
       SELECT we.workout_id, e.name, COUNT(ws.id) as set_count,
-             MAX(ws.grade) as top_grade
+             GROUP_CONCAT(ws.grade) as grades
       FROM workout_exercises we
       JOIN exercises e ON e.id = we.exercise_id
       LEFT JOIN workout_sets ws ON ws.workout_exercise_id = we.id
@@ -73,6 +93,8 @@ router.get('/', (req, res) => {
 
     const byWorkout = {};
     for (const row of exerciseSummaries) {
+      row.top_grade = bestGrade(row.grades);
+      delete row.grades;
       (byWorkout[row.workout_id] ??= []).push(row);
     }
     for (const w of workouts) {
@@ -156,6 +178,8 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const { category, date, duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id, exercises } = req.body;
+  if (!category) return res.status(400).json({ error: 'Category is required' });
+  if (!date) return res.status(400).json({ error: 'Date is required' });
   const existing = db.prepare('SELECT id FROM workouts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Workout not found' });
   const errors = validateWorkoutBody(req.body);

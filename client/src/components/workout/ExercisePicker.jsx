@@ -4,7 +4,7 @@ import { useToast } from '../common/Toast.jsx';
 import { CATEGORIES } from '../../utils/constants.js';
 import { Plus, X } from 'lucide-react';
 
-export function ExercisePicker({ value, onChange, category, className = '', exercises: propExercises, recentIds: propRecentIds }) {
+export function ExercisePicker({ value, onChange, category, className = '', exercises: propExercises, recentIds: propRecentIds, onExerciseCreated }) {
   const toast = useToast();
   const [fetchedExercises, setFetchedExercises] = useState([]);
   const [fetchedRecentIds, setFetchedRecentIds] = useState([]);
@@ -49,6 +49,7 @@ export function ExercisePicker({ value, onChange, category, className = '', exer
     try {
       const created = await exercisesApi.create({ name: newName.trim(), category: newCategory });
       if (!propExercises) setFetchedExercises(prev => [...prev, created]);
+      if (onExerciseCreated) onExerciseCreated(created);
       onChange(created.id, created);
       setShowCreate(false);
       setNewName('');

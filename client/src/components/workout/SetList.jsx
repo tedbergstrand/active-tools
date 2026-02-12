@@ -15,8 +15,8 @@ export function SetList({ sets, exerciseType, gradeSystem, onChange }) {
 
   const addSet = () => {
     const lastSet = sets[sets.length - 1];
-    const newSet = lastSet ? { ...lastSet } : {};
-    newSet._key = crypto.randomUUID();
+    const { id, _key, ...rest } = lastSet || {};
+    const newSet = { ...rest, _key: crypto.randomUUID() };
     onChange([...sets, newSet]);
   };
 

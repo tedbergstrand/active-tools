@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import db from '../db/database.js';
+import { localDateISO } from '../lib/dates.js';
 
 const router = Router();
 
@@ -134,9 +135,9 @@ router.post('/sessions', (req, res) => {
   if (!tool) return res.status(404).json({ error: 'Tool not found' });
 
   const result = db.prepare(
-    `INSERT INTO tool_sessions (tool_id, duration_seconds, config, results, notes)
-     VALUES (?, ?, ?, ?, ?)`
-  ).run(tool_id, duration_seconds, config ? JSON.stringify(config) : null,
+    `INSERT INTO tool_sessions (tool_id, date, duration_seconds, config, results, notes)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(tool_id, localDateISO(), duration_seconds, config ? JSON.stringify(config) : null,
     results ? JSON.stringify(results) : null, notes);
 
   res.status(201).json({ id: result.lastInsertRowid });

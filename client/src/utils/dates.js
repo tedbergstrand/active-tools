@@ -19,7 +19,8 @@ export function formatRelative(dateStr) {
   if (diff <= 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   if (diff < 7) return `${diff} days ago`;
-  if (diff < 30) return `${Math.floor(diff / 7)} weeks ago`;
+  const weeks = Math.floor(diff / 7);
+  if (diff < 30) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
   return formatDate(dateStr);
 }
 
