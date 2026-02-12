@@ -18,6 +18,16 @@ function validateWorkoutBody(body) {
   return errors;
 }
 
+// Must be before /:id to avoid being caught by param route
+router.post('/rest-day', (req, res) => {
+  const date = new Date().toISOString().split('T')[0];
+  const result = db.prepare(`
+    INSERT INTO workouts (category, date, duration_minutes, notes, rpe)
+    VALUES ('traditional', ?, 0, 'Rest day', 1)
+  `).run(date);
+  res.status(201).json({ id: result.lastInsertRowid });
+});
+
 router.get('/', (req, res) => {
   const { category, location, search, date_from, date_to } = req.query;
   const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 50));

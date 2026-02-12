@@ -1,7 +1,23 @@
 import { Router } from 'express';
 import db from '../db/database.js';
+import { generatePlanStructure, insertGeneratedStructure } from '../lib/planGenerator.js';
 
 const router = Router();
+
+// Must be before /:id param routes
+router.post('/:id/generate', (req, res) => {
+  const plan = db.prepare('SELECT * FROM plans WHERE id = ?').get(req.params.id);
+  if (!plan) return res.status(404).json({ error: 'Plan not found' });
+
+  try {
+    const weeks = generatePlanStructure(plan);
+    insertGeneratedStructure(plan.id, weeks);
+    res.json({ success: true, weeks_generated: weeks.length });
+  } catch (err) {
+    console.error('Plan generation error:', err);
+    res.status(500).json({ error: 'Failed to generate plan structure' });
+  }
+});
 
 router.get('/', (req, res) => {
   const { category } = req.query;

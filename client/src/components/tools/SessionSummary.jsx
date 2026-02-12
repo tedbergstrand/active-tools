@@ -6,6 +6,7 @@ import { useSpeech, formatTimeAsSpeech } from '../../hooks/useSpeech.js';
 import { useTimerContext } from '../timer/TimerContext.jsx';
 import { useToast } from '../common/Toast.jsx';
 import { toolsApi } from '../../api/tools.js';
+import { progressApi } from '../../api/progress.js';
 import { formatSessionTime } from '../../utils/buildSteps.js';
 import { todayISO } from '../../utils/dates.js';
 
@@ -43,6 +44,7 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
   const [savedSessionId, setSavedSessionId] = useState(null);
   const [chaining, setChaining] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [insight, setInsight] = useState(null);
   const { speak } = useSpeech();
   const toast = useToast();
 
@@ -75,6 +77,10 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
       });
       setSaved(true);
       if (result?.id) setSavedSessionId(result.id);
+      // Fetch insight after save
+      progressApi.insight({ category: tool?.category, duration: elapsed }).then(data => {
+        if (data?.insight) setInsight(data.insight);
+      }).catch(() => {});
     } catch (e) {
       toast.error('Failed to save session');
     } finally {
@@ -151,6 +157,13 @@ export function SessionSummary({ tool, elapsed, stats, config, log, onSave, onDi
           <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium justify-center">
             <Check size={16} /> Session saved
           </div>
+
+          {insight && (
+            <div className="flex items-center gap-2 bg-violet-500/10 border border-violet-500/25 rounded-xl px-4 py-3 text-sm text-violet-300">
+              <Sparkles size={16} className="text-violet-400 shrink-0" />
+              {insight}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button variant="secondary" onClick={handleLogAsWorkout} className="flex-1">

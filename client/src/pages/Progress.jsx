@@ -8,6 +8,9 @@ import { FrequencyChart } from '../components/progress/FrequencyChart.jsx';
 import { PersonalRecords } from '../components/progress/PersonalRecords.jsx';
 import { DistributionChart } from '../components/progress/DistributionChart.jsx';
 import { RpeTrendChart } from '../components/progress/RpeTrendChart.jsx';
+import { ExerciseSelector } from '../components/progress/ExerciseSelector.jsx';
+import { ExerciseProgressChart } from '../components/progress/ExerciseProgressChart.jsx';
+import { TonnageChart } from '../components/progress/TonnageChart.jsx';
 import { useProgressSummary, useStreak, useTrends } from '../hooks/useProgress.js';
 import { Activity, Clock, Gauge, Layers, Flame } from 'lucide-react';
 
@@ -28,6 +31,7 @@ const categoryTabs = [
 export function Progress() {
   const [days, setDays] = useState('90');
   const [category, setCategory] = useState('');
+  const [selectedExercise, setSelectedExercise] = useState(null);
   const { summary } = useProgressSummary({ days, ...(category ? { category } : {}) });
   const { streak } = useStreak();
   const { trends } = useTrends({ days, ...(category ? { category } : {}) });
@@ -69,6 +73,15 @@ export function Progress() {
       </div>
 
       <FrequencyChart days={Number(days)} />
+
+      {/* Exercise-specific progression */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Exercise Progress</h2>
+        <ExerciseSelector value={selectedExercise} onChange={setSelectedExercise} />
+        {selectedExercise && <ExerciseProgressChart exerciseId={selectedExercise} days={Number(days)} />}
+      </div>
+
+      <TonnageChart days={Number(days)} />
 
       <PersonalRecords category={category || undefined} />
     </div>

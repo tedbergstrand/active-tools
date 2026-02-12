@@ -7,14 +7,21 @@ import { TimerFloatingWidget } from '../timer/TimerFloatingWidget.jsx';
 import { ToolSessionFloatingWidget } from '../tools/ToolSessionFloatingWidget.jsx';
 import { ToolSessionRunner } from '../tools/ToolSessionRunner.jsx';
 import { useToolSession } from '../tools/ToolSessionContext.jsx';
+import { OnboardingWizard } from '../onboarding/OnboardingWizard.jsx';
+import { useSettings } from '../settings/SettingsContext.jsx';
 
 export function AppShell() {
   const toolSession = useToolSession();
+  const { settings } = useSettings();
 
   const handleStartNext = useCallback((nextTool) => {
     const config = nextTool.default_config ? JSON.parse(nextTool.default_config) : {};
     toolSession.startSession(nextTool, config);
   }, [toolSession]);
+
+  if (settings.onboarding_completed !== 'true') {
+    return <OnboardingWizard />;
+  }
 
   return (
     <div className="min-h-screen">

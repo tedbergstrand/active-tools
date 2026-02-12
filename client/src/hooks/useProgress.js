@@ -171,3 +171,78 @@ export function usePersonalRecords(params = {}) {
 
   return { records, loading };
 }
+
+export function useRecovery() {
+  const [recovery, setRecovery] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    progressApi.recovery({ signal: controller.signal })
+      .then(data => { if (!cancelled) setRecovery(data); })
+      .catch(e => { if (e.name !== 'AbortError') console.error(e); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [refreshKey]);
+
+  const refetch = useCallback(() => setRefreshKey(k => k + 1), []);
+  return { recovery, loading, refetch };
+}
+
+export function useExerciseHistory(exerciseId, params = {}) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const key = JSON.stringify({ exerciseId, ...params });
+
+  useEffect(() => {
+    if (!exerciseId) { setLoading(false); return; }
+    let cancelled = false;
+    const controller = new AbortController();
+    setLoading(true);
+    progressApi.exerciseHistory(exerciseId, params, { signal: controller.signal })
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(e => { if (e.name !== 'AbortError') console.error(e); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [key]);
+
+  return { data, loading };
+}
+
+export function useVolumeDetail(params = {}) {
+  const [volumeDetail, setVolumeDetail] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const key = JSON.stringify(params);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    setLoading(true);
+    progressApi.volumeDetail(params, { signal: controller.signal })
+      .then(d => { if (!cancelled) setVolumeDetail(d); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [key]);
+
+  return { volumeDetail, loading };
+}
+
+export function useExercisesWithData() {
+  const [exercises, setExercises] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    progressApi.exercisesWithData({ signal: controller.signal })
+      .then(d => { if (!cancelled) setExercises(d); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, []);
+
+  return { exercises, loading };
+}

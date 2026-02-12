@@ -11,6 +11,7 @@ export const plansApi = {
   create: (data) => api.post('/plans', data),
   update: (id, data) => api.put(`/plans/${id}`, data),
   updateStructure: (id, weeks) => api.put(`/plans/${id}/structure`, { weeks }),
+  generate: (id, settings) => api.post(`/plans/${id}/generate`, settings),
   activate: (id) => api.post(`/plans/${id}/activate`),
   deactivate: (id) => api.post(`/plans/${id}/deactivate`),
   delete: (id) => api.delete(`/plans/${id}`),

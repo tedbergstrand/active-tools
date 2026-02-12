@@ -7,7 +7,7 @@ import { useToast } from '../common/Toast.jsx';
 import { CATEGORIES, DAYS_OF_WEEK } from '../../utils/constants.js';
 import { todayISO } from '../../utils/dates.js';
 import { plansApi } from '../../api/plans.js';
-import { Calendar, Target, Zap, Dumbbell, CheckCircle2, Circle, Plus, Trash2, Pencil, Save, X } from 'lucide-react';
+import { Calendar, Target, Zap, Dumbbell, CheckCircle2, Circle, Plus, Trash2, Pencil, Save, X, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const categoryColors = { roped: 'blue', bouldering: 'amber', traditional: 'emerald', mixed: 'purple' };
@@ -201,6 +201,7 @@ export function PlanDetail({ plan, onActivate, onDeactivate, onRefetch, progress
   const toast = useToast();
   const [addingWeek, setAddingWeek] = useState(false);
   const [addingWorkoutWeekId, setAddingWorkoutWeekId] = useState(null);
+  const [generating, setGenerating] = useState(false);
 
   if (!plan) return null;
 
@@ -275,7 +276,21 @@ export function PlanDetail({ plan, onActivate, onDeactivate, onRefetch, progress
       {plan.weeks?.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <p className="text-lg mb-2">No weeks yet</p>
-          <p className="text-sm">Click "Add Week" to start building your plan</p>
+          <p className="text-sm mb-4">Click "Add Week" to start building your plan, or auto-populate with progressive overload.</p>
+          <Button onClick={async () => {
+            setGenerating(true);
+            try {
+              await plansApi.generate(plan.id);
+              toast.success('Plan populated with progressive overload');
+              onRefetch?.();
+            } catch {
+              toast.error('Failed to generate plan');
+            } finally {
+              setGenerating(false);
+            }
+          }} disabled={generating} variant="secondary">
+            <Wand2 size={16} /> {generating ? 'Generating...' : 'Auto-populate Plan'}
+          </Button>
         </div>
       )}
 

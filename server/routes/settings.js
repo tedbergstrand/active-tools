@@ -5,6 +5,7 @@ const router = Router();
 
 const ALLOWED_KEYS = new Set([
   'grade_system', 'boulder_grade_system', 'units', 'timer_sound', 'timer_vibration', 'theme',
+  'onboarding_completed', 'experience_level', 'primary_discipline', 'max_roped_grade', 'max_boulder_grade', 'training_goal',
 ]);
 
 router.get('/', (req, res) => {

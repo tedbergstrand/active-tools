@@ -12,6 +12,7 @@ import { useProgressSummary, useStreak } from '../hooks/useProgress.js';
 import { toolsApi } from '../api/tools.js';
 import { plansApi } from '../api/plans.js';
 import { todayISO } from '../utils/dates.js';
+import { RecoveryNudge } from '../components/dashboard/RecoveryNudge.jsx';
 import { Plus, Mountain, Gem, Dumbbell, Wrench, Activity, Clock, Gauge, Layers, Play, ChevronRight, Zap, CheckCircle2, Flame } from 'lucide-react';
 
 export function Dashboard() {
@@ -66,6 +67,8 @@ export function Dashboard() {
       <Header title="Dashboard">
         <Button onClick={() => navigate('/log')}><Plus size={18} /> Log Workout</Button>
       </Header>
+
+      <RecoveryNudge />
 
       {todayPlan && todayPlan.workouts.length > 0 ? (
         <Card className="p-4 space-y-3 border-emerald-500/20 bg-emerald-500/5">

@@ -10,6 +10,7 @@ import { SetList } from './SetList.jsx';
 import { RestTimerQuick } from '../timer/RestTimerQuick.jsx';
 import { useToast } from '../common/Toast.jsx';
 import { todayISO } from '../../utils/dates.js';
+import { WorkoutSaveOverlay } from './WorkoutSaveOverlay.jsx';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 
 const categoryOptions = [
@@ -32,6 +33,7 @@ export function WorkoutForm({ initialData, workoutId }) {
   const { category: urlCategory } = useParams();
   const { settings } = useSettings();
   const [saving, setSaving] = useState(false);
+  const [savedWorkoutId, setSavedWorkoutId] = useState(null);
   const toast = useToast();
   const isEditMode = Boolean(workoutId);
 
@@ -96,7 +98,7 @@ export function WorkoutForm({ initialData, workoutId }) {
         navigate(`/workout/${workoutId}`);
       } else {
         const result = await workoutsApi.create(payload);
-        navigate(`/workout/${result.id}`);
+        setSavedWorkoutId(result.id);
       }
     } catch (err) {
       toast.error(err.message || 'Failed to save workout');
@@ -108,6 +110,19 @@ export function WorkoutForm({ initialData, workoutId }) {
   const gradeSystem = form.category === 'bouldering'
     ? (settings.boulder_grade_system || 'v_scale')
     : (settings.grade_system || 'yds');
+
+  if (savedWorkoutId) {
+    const exerciseCount = form.exercises.filter(ex => ex.exercise_id).length;
+    const setCount = form.exercises.reduce((sum, ex) => sum + (ex.sets?.filter(s => Object.values(s).some(v => v)).length || 0), 0);
+    return (
+      <WorkoutSaveOverlay
+        workoutId={savedWorkoutId}
+        exerciseCount={exerciseCount}
+        setCount={setCount}
+        onDismiss={() => navigate('/')}
+      />
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">

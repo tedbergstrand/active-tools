@@ -7,6 +7,7 @@ import { Input } from '../components/common/Input.jsx';
 import { Select } from '../components/common/Select.jsx';
 import { useToast } from '../components/common/Toast.jsx';
 import { plansApi } from '../api/plans.js';
+import { useSettings } from '../components/settings/SettingsContext.jsx';
 import { DIFFICULTIES } from '../utils/constants.js';
 import { Save } from 'lucide-react';
 
@@ -25,6 +26,7 @@ const difficultyOptions = [
 export function CreatePlan() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { settings } = useSettings();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -46,6 +48,12 @@ export function CreatePlan() {
         ...form,
         difficulty: form.difficulty || null,
       });
+      // Auto-populate plan structure with progressive overload
+      await plansApi.generate(result.id, {
+        experience_level: settings.experience_level,
+        max_roped_grade: settings.max_roped_grade,
+        max_boulder_grade: settings.max_boulder_grade,
+      }).catch(() => {}); // non-blocking — plan still created even if generation fails
       navigate(`/plans/${result.id}`);
     } catch (err) {
       toast.error('Failed to create plan');

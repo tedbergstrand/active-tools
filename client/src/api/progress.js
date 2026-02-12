@@ -34,4 +34,19 @@ export const progressApi = {
     const qs = new URLSearchParams(params).toString();
     return api.get(`/progress/rpe-trend${qs ? '?' + qs : ''}`, options);
   },
+  recovery: (options) => api.get('/progress/recovery', options),
+  checkPRs: (workoutId) => api.post('/progress/check-prs', { workout_id: workoutId }),
+  insight: (params = {}, options) => {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/progress/insight${qs ? '?' + qs : ''}`, options);
+  },
+  exerciseHistory: (exerciseId, params = {}, options) => {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/progress/exercise-history/${exerciseId}${qs ? '?' + qs : ''}`, options);
+  },
+  volumeDetail: (params = {}, options) => {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/progress/volume-detail${qs ? '?' + qs : ''}`, options);
+  },
+  exercisesWithData: (options) => api.get('/progress/exercises-with-data', options),
 };

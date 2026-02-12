@@ -9,4 +9,5 @@ export const workoutsApi = {
   create: (data) => api.post('/workouts', data),
   update: (id, data) => api.put(`/workouts/${id}`, data),
   delete: (id) => api.delete(`/workouts/${id}`),
+  logRestDay: () => api.post('/workouts/rest-day'),
 };
