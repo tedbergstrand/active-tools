@@ -1,24 +1,24 @@
 import { api } from './client.js';
 
 export const progressApi = {
-  summary: (params = {}) => {
+  summary: (params = {}, options) => {
     const qs = new URLSearchParams(params).toString();
-    return api.get(`/progress/summary${qs ? '?' + qs : ''}`);
+    return api.get(`/progress/summary${qs ? '?' + qs : ''}`, options);
   },
-  grades: (params = {}) => {
+  grades: (params = {}, options) => {
     const qs = new URLSearchParams(params).toString();
-    return api.get(`/progress/grades${qs ? '?' + qs : ''}`);
+    return api.get(`/progress/grades${qs ? '?' + qs : ''}`, options);
   },
-  volume: (params = {}) => {
+  volume: (params = {}, options) => {
     const qs = new URLSearchParams(params).toString();
-    return api.get(`/progress/volume${qs ? '?' + qs : ''}`);
+    return api.get(`/progress/volume${qs ? '?' + qs : ''}`, options);
   },
-  frequency: (params = {}) => {
+  frequency: (params = {}, options) => {
     const qs = new URLSearchParams(params).toString();
-    return api.get(`/progress/frequency${qs ? '?' + qs : ''}`);
+    return api.get(`/progress/frequency${qs ? '?' + qs : ''}`, options);
   },
-  personalRecords: (params = {}) => {
+  personalRecords: (params = {}, options) => {
     const qs = new URLSearchParams(params).toString();
-    return api.get(`/progress/personal-records${qs ? '?' + qs : ''}`);
+    return api.get(`/progress/personal-records${qs ? '?' + qs : ''}`, options);
   },
 };

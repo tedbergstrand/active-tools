@@ -25,7 +25,7 @@ router.post('/', (req, res) => {
   const result = db.prepare(
     'INSERT INTO exercises (name, category, subcategory, default_metric, description) VALUES (?, ?, ?, ?, ?)'
   ).run(name, category, subcategory || null, default_metric || 'reps', description || null);
-  res.status(201).json({ id: result.lastInsertRowid, ...req.body });
+  res.status(201).json({ id: result.lastInsertRowid, name, category, subcategory: subcategory || null, default_metric: default_metric || 'reps', description: description || null });
 });
 
 export default router;

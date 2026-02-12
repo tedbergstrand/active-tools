@@ -5,25 +5,24 @@ export function useWorkouts(params = {}) {
   const [data, setData] = useState({ workouts: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const key = JSON.stringify(params);
 
-  const fetch = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
-    try {
-      const result = await workoutsApi.list(params);
-      setData(result);
-      setError(null);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [key]);
+    workoutsApi.list(params, { signal: controller.signal })
+      .then(result => { if (!cancelled) { setData(result); setError(null); } })
+      .catch(e => { if (!cancelled && e.name !== 'AbortError') setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [key, refreshKey]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const refetch = useCallback(() => setRefreshKey(k => k + 1), []);
 
-  return { ...data, loading, error, refetch: fetch };
+  return { ...data, loading, error, refetch };
 }
 
 export function useWorkout(id) {
@@ -33,11 +32,14 @@ export function useWorkout(id) {
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
-    workoutsApi.get(id)
-      .then(setWorkout)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+    workoutsApi.get(id, { signal: controller.signal })
+      .then(data => { if (!cancelled) { setWorkout(data); setError(null); } })
+      .catch(e => { if (!cancelled && e.name !== 'AbortError') setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
   }, [id]);
 
   return { workout, loading, error };

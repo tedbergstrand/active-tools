@@ -1,11 +1,11 @@
 import { api } from './client.js';
 
 export const plansApi = {
-  list: (params = {}) => {
+  list: (params = {}, options) => {
     const qs = new URLSearchParams(params).toString();
-    return api.get(`/plans${qs ? '?' + qs : ''}`);
+    return api.get(`/plans${qs ? '?' + qs : ''}`, options);
   },
-  get: (id) => api.get(`/plans/${id}`),
+  get: (id, options) => api.get(`/plans/${id}`, options),
   create: (data) => api.post('/plans', data),
   update: (id, data) => api.put(`/plans/${id}`, data),
   activate: (id) => api.post(`/plans/${id}/activate`),

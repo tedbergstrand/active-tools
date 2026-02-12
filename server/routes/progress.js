@@ -3,8 +3,29 @@ import db from '../db/database.js';
 
 const router = Router();
 
+// Grade ranking for correct sorting (alphabetical ORDER BY gets V9 > V10 wrong)
+const GRADE_ORDER = [
+  'VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9',
+  'V10', 'V11', 'V12', 'V13', 'V14', 'V15', 'V16', 'V17',
+  '5.5', '5.6', '5.7', '5.8', '5.9',
+  '5.10a', '5.10b', '5.10c', '5.10d',
+  '5.11a', '5.11b', '5.11c', '5.11d',
+  '5.12a', '5.12b', '5.12c', '5.12d',
+  '5.13a', '5.13b', '5.13c', '5.13d',
+  '5.14a', '5.14b', '5.14c', '5.14d',
+  '5.15a', '5.15b', '5.15c',
+];
+const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g, i]));
+function gradeRank(g) { return GRADE_RANK[g] ?? -1; }
+
+function parseDays(raw, fallback) {
+  const n = Number(raw);
+  return Math.max(1, Math.min(3650, Number.isNaN(n) ? fallback : n));
+}
+
 router.get('/summary', (req, res) => {
-  const { category, days = 30 } = req.query;
+  const { category } = req.query;
+  const days = parseDays(req.query.days, 30);
   const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
 
   let whereClause = 'WHERE w.date >= ?';
@@ -34,7 +55,8 @@ router.get('/summary', (req, res) => {
 });
 
 router.get('/grades', (req, res) => {
-  const { category, days = 90 } = req.query;
+  const { category } = req.query;
+  const days = parseDays(req.query.days, 90);
   const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
 
   let whereClause = 'WHERE w.date >= ? AND ws.grade IS NOT NULL';
@@ -54,7 +76,7 @@ router.get('/grades', (req, res) => {
 });
 
 router.get('/volume', (req, res) => {
-  const { days = 90 } = req.query;
+  const days = parseDays(req.query.days, 90);
   const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
 
   const volume = db.prepare(`
@@ -76,7 +98,7 @@ router.get('/volume', (req, res) => {
 });
 
 router.get('/frequency', (req, res) => {
-  const { days = 365 } = req.query;
+  const days = parseDays(req.query.days, 365);
   const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
 
   const frequency = db.prepare(`
@@ -97,7 +119,7 @@ router.get('/personal-records', (req, res) => {
   const params = [];
   if (category) { whereClause += ' AND w.category = ?'; params.push(category); }
 
-  // Highest grades
+  // Highest grades — sort by grade rank in JS (SQL alphabetical sort gets V9 > V10 wrong)
   const highestGrades = db.prepare(`
     SELECT ws.grade, ws.send_type, w.date, w.category, e.name as exercise_name
     FROM workout_sets ws
@@ -105,9 +127,10 @@ router.get('/personal-records', (req, res) => {
     JOIN workouts w ON w.id = we.workout_id
     JOIN exercises e ON e.id = we.exercise_id
     ${whereClause} AND ws.grade IS NOT NULL AND ws.send_type IN ('onsight', 'flash', 'redpoint')
-    ORDER BY ws.grade DESC
-    LIMIT 10
-  `).all(...params);
+    LIMIT 10000
+  `).all(...params)
+    .sort((a, b) => gradeRank(b.grade) - gradeRank(a.grade))
+    .slice(0, 10);
 
   // Max weight on weighted exercises
   const maxWeights = db.prepare(`

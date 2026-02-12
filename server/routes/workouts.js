@@ -4,12 +4,14 @@ import db from '../db/database.js';
 const router = Router();
 
 router.get('/', (req, res) => {
-  const { category, limit = 50, offset = 0 } = req.query;
+  const { category } = req.query;
+  const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 50));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
   let sql = 'SELECT * FROM workouts WHERE 1=1';
   const params = [];
   if (category) { sql += ' AND category = ?'; params.push(category); }
   sql += ' ORDER BY date DESC, created_at DESC LIMIT ? OFFSET ?';
-  params.push(Number(limit), Number(offset));
+  params.push(limit, offset);
 
   const workouts = db.prepare(sql).all(...params);
   const total = db.prepare(
@@ -32,10 +34,18 @@ router.get('/:id', (req, res) => {
     ORDER BY we.sort_order
   `).all(req.params.id);
 
+  const allSets = db.prepare(`
+    SELECT ws.* FROM workout_sets ws
+    WHERE ws.workout_exercise_id IN (SELECT id FROM workout_exercises WHERE workout_id = ?)
+    ORDER BY ws.workout_exercise_id, ws.set_number
+  `).all(req.params.id);
+
+  const setsByExercise = {};
+  for (const s of allSets) {
+    (setsByExercise[s.workout_exercise_id] ??= []).push(s);
+  }
   for (const ex of exercises) {
-    ex.sets = db.prepare(
-      'SELECT * FROM workout_sets WHERE workout_exercise_id = ? ORDER BY set_number'
-    ).all(ex.id);
+    ex.sets = setsByExercise[ex.id] || [];
   }
 
   res.json({ ...workout, exercises });
@@ -91,11 +101,7 @@ router.put('/:id', (req, res) => {
       WHERE id=?
     `).run(category, date, duration_minutes, location, notes, rpe, req.params.id);
 
-    // Replace exercises and sets
-    const existingExs = db.prepare('SELECT id FROM workout_exercises WHERE workout_id = ?').all(req.params.id);
-    for (const ex of existingExs) {
-      db.prepare('DELETE FROM workout_sets WHERE workout_exercise_id = ?').run(ex.id);
-    }
+    // Replace exercises and sets (CASCADE handles workout_sets)
     db.prepare('DELETE FROM workout_exercises WHERE workout_id = ?').run(req.params.id);
 
     if (exercises?.length) {
@@ -127,14 +133,8 @@ router.delete('/:id', (req, res) => {
   const existing = db.prepare('SELECT id FROM workouts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Workout not found' });
 
-  db.transaction(() => {
-    const exs = db.prepare('SELECT id FROM workout_exercises WHERE workout_id = ?').all(req.params.id);
-    for (const ex of exs) {
-      db.prepare('DELETE FROM workout_sets WHERE workout_exercise_id = ?').run(ex.id);
-    }
-    db.prepare('DELETE FROM workout_exercises WHERE workout_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM workouts WHERE id = ?').run(req.params.id);
-  })();
+  // CASCADE handles workout_exercises → workout_sets
+  db.prepare('DELETE FROM workouts WHERE id = ?').run(req.params.id);
 
   res.json({ success: true });
 });

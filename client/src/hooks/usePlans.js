@@ -5,45 +5,45 @@ export function usePlans(params = {}) {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const key = JSON.stringify(params);
 
-  const fetch = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
-    try {
-      setPlans(await plansApi.list(params));
-      setError(null);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [key]);
+    plansApi.list(params, { signal: controller.signal })
+      .then(data => { if (!cancelled) { setPlans(data); setError(null); } })
+      .catch(e => { if (!cancelled && e.name !== 'AbortError') setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [key, refreshKey]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const refetch = useCallback(() => setRefreshKey(k => k + 1), []);
 
-  return { plans, loading, error, refetch: fetch };
+  return { plans, loading, error, refetch };
 }
 
 export function usePlan(id) {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetch = useCallback(async () => {
+  useEffect(() => {
     if (!id) return;
+    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
-    try {
-      setPlan(await plansApi.get(id));
-      setError(null);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+    plansApi.get(id, { signal: controller.signal })
+      .then(data => { if (!cancelled) { setPlan(data); setError(null); } })
+      .catch(e => { if (!cancelled && e.name !== 'AbortError') setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [id, refreshKey]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const refetch = useCallback(() => setRefreshKey(k => k + 1), []);
 
-  return { plan, loading, error, refetch: fetch };
+  return { plan, loading, error, refetch };
 }

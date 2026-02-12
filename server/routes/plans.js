@@ -17,17 +17,34 @@ router.get('/:id', (req, res) => {
   if (!plan) return res.status(404).json({ error: 'Plan not found' });
 
   const weeks = db.prepare('SELECT * FROM plan_weeks WHERE plan_id = ? ORDER BY week_number').all(plan.id);
-  for (const week of weeks) {
-    week.workouts = db.prepare('SELECT * FROM plan_workouts WHERE plan_week_id = ? ORDER BY day_of_week').all(week.id);
-    for (const workout of week.workouts) {
-      workout.exercises = db.prepare(`
+  const weekIds = weeks.map(w => w.id);
+
+  const allWorkouts = weekIds.length
+    ? db.prepare(`SELECT * FROM plan_workouts WHERE plan_week_id IN (${weekIds.map(() => '?').join(',')}) ORDER BY day_of_week`).all(...weekIds)
+    : [];
+  const workoutIds = allWorkouts.map(w => w.id);
+
+  const allExercises = workoutIds.length
+    ? db.prepare(`
         SELECT pwe.*, e.name as exercise_name, e.default_metric
         FROM plan_workout_exercises pwe
         JOIN exercises e ON e.id = pwe.exercise_id
-        WHERE pwe.plan_workout_id = ?
+        WHERE pwe.plan_workout_id IN (${workoutIds.map(() => '?').join(',')})
         ORDER BY pwe.sort_order
-      `).all(workout.id);
-    }
+      `).all(...workoutIds)
+    : [];
+
+  const exercisesByWorkout = {};
+  for (const ex of allExercises) {
+    (exercisesByWorkout[ex.plan_workout_id] ??= []).push(ex);
+  }
+  const workoutsByWeek = {};
+  for (const w of allWorkouts) {
+    w.exercises = exercisesByWorkout[w.id] || [];
+    (workoutsByWeek[w.plan_week_id] ??= []).push(w);
+  }
+  for (const week of weeks) {
+    week.workouts = workoutsByWeek[week.id] || [];
   }
 
   res.json({ ...plan, weeks });
@@ -69,6 +86,8 @@ router.post('/:id/activate', (req, res) => {
 });
 
 router.post('/:id/deactivate', (req, res) => {
+  const plan = db.prepare('SELECT id FROM plans WHERE id = ?').get(req.params.id);
+  if (!plan) return res.status(404).json({ error: 'Plan not found' });
   db.prepare('UPDATE plans SET is_active = 0 WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
@@ -77,18 +96,8 @@ router.delete('/:id', (req, res) => {
   const existing = db.prepare('SELECT id FROM plans WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Plan not found' });
 
-  db.transaction(() => {
-    const weeks = db.prepare('SELECT id FROM plan_weeks WHERE plan_id = ?').all(req.params.id);
-    for (const week of weeks) {
-      const workouts = db.prepare('SELECT id FROM plan_workouts WHERE plan_week_id = ?').all(week.id);
-      for (const w of workouts) {
-        db.prepare('DELETE FROM plan_workout_exercises WHERE plan_workout_id = ?').run(w.id);
-      }
-      db.prepare('DELETE FROM plan_workouts WHERE plan_week_id = ?').run(week.id);
-    }
-    db.prepare('DELETE FROM plan_weeks WHERE plan_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM plans WHERE id = ?').run(req.params.id);
-  })();
+  // CASCADE handles plan_weeks → plan_workouts → plan_workout_exercises
+  db.prepare('DELETE FROM plans WHERE id = ?').run(req.params.id);
 
   res.json({ success: true });
 });
