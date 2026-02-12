@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import db from '../db/database.js';
+import { localDateISO } from '../lib/dates.js';
 
 const router = Router();
 
@@ -20,7 +21,7 @@ function validateWorkoutBody(body) {
 
 // Must be before /:id to avoid being caught by param route
 router.post('/rest-day', (req, res) => {
-  const date = new Date().toISOString().split('T')[0];
+  const date = localDateISO();
   const result = db.prepare(`
     INSERT INTO workouts (category, date, duration_minutes, notes, rpe)
     VALUES ('traditional', ?, 0, 'Rest day', 1)
@@ -116,7 +117,7 @@ router.post('/', (req, res) => {
     const w = db.prepare(`
       INSERT INTO workouts (category, date, duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(category, date || new Date().toISOString().split('T')[0], duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id || null);
+    `).run(category, date || localDateISO(), duration_minutes, location, notes, rpe, plan_workout_id, tool_session_id || null);
 
     const workoutId = w.lastInsertRowid;
 

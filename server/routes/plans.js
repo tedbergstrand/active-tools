@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import db from '../db/database.js';
 import { generatePlanStructure, insertGeneratedStructure } from '../lib/planGenerator.js';
+import { localDateISO } from '../lib/dates.js';
 
 const router = Router();
 
@@ -64,7 +65,7 @@ router.get('/active/today', (req, res) => {
   }
 
   // Check if logged today
-  const todayDate = new Date().toISOString().split('T')[0];
+  const todayDate = localDateISO();
   const loggedIds = workoutIds.length
     ? db.prepare(
         `SELECT DISTINCT plan_workout_id FROM workouts WHERE plan_workout_id IN (${workoutIds.map(() => '?').join(',')}) AND date = ?`
@@ -242,9 +243,9 @@ router.put('/:id/structure', (req, res) => {
               if (!ex.exercise_id) continue;
               insertExercise.run(
                 workoutId, ex.exercise_id, i,
-                ex.target_sets || null, ex.target_reps || null,
-                ex.target_weight || null, ex.target_duration || null,
-                ex.target_grade || null, ex.notes || null
+                ex.target_sets ?? null, ex.target_reps ?? null,
+                ex.target_weight ?? null, ex.target_duration ?? null,
+                ex.target_grade ?? null, ex.notes ?? null
               );
             }
           }
@@ -321,9 +322,9 @@ router.put('/workouts/:workoutId', (req, res) => {
         if (!ex.exercise_id) continue;
         insertEx.run(
           req.params.workoutId, ex.exercise_id, i,
-          ex.target_sets || null, ex.target_reps || null,
-          ex.target_weight || null, ex.target_duration || null,
-          ex.target_grade || null, ex.notes || null
+          ex.target_sets ?? null, ex.target_reps ?? null,
+          ex.target_weight ?? null, ex.target_duration ?? null,
+          ex.target_grade ?? null, ex.notes ?? null
         );
       }
     }

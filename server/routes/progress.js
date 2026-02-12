@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import db from '../db/database.js';
+import { localDateISO, daysAgoISO } from '../lib/dates.js';
 
 const router = Router();
 
@@ -26,7 +27,7 @@ function parseDays(raw, fallback) {
 router.get('/summary', (req, res) => {
   const { category } = req.query;
   const days = parseDays(req.query.days, 30);
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  const since = daysAgoISO(days);
 
   let whereClause = 'WHERE w.date >= ?';
   const params = [since];
@@ -67,7 +68,7 @@ router.get('/summary', (req, res) => {
 router.get('/grades', (req, res) => {
   const { category } = req.query;
   const days = parseDays(req.query.days, 90);
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  const since = daysAgoISO(days);
 
   let whereClause = 'WHERE w.date >= ? AND ws.grade IS NOT NULL';
   const params = [since];
@@ -87,7 +88,7 @@ router.get('/grades', (req, res) => {
 
 router.get('/volume', (req, res) => {
   const days = parseDays(req.query.days, 90);
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  const since = daysAgoISO(days);
 
   const volume = db.prepare(`
     SELECT
@@ -109,7 +110,7 @@ router.get('/volume', (req, res) => {
 
 router.get('/frequency', (req, res) => {
   const days = parseDays(req.query.days, 365);
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  const since = daysAgoISO(days);
 
   const frequency = db.prepare(`
     SELECT date, category, SUM(cnt) as count FROM (
@@ -140,8 +141,8 @@ router.get('/streak', (req, res) => {
   if (dates.length === 0) return res.json({ current: 0, longest: 0 });
 
   // Calculate current streak
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const today = localDateISO();
+  const yesterday = daysAgoISO(1);
   let current = 0;
 
   if (dates[0] === today || dates[0] === yesterday) {
@@ -173,10 +174,9 @@ router.get('/streak', (req, res) => {
 router.get('/trends', (req, res) => {
   const { category } = req.query;
   const days = parseDays(req.query.days, 30);
-  const now = Date.now();
-  const currentStart = new Date(now - days * 86400000).toISOString().split('T')[0];
-  const previousStart = new Date(now - days * 2 * 86400000).toISOString().split('T')[0];
-  const currentEnd = new Date(now).toISOString().split('T')[0];
+  const currentStart = daysAgoISO(days);
+  const previousStart = daysAgoISO(days * 2);
+  const currentEnd = localDateISO();
 
   function periodStats(since, until) {
     let where = 'WHERE w.date >= ? AND w.date <= ?';
@@ -206,7 +206,7 @@ router.get('/trends', (req, res) => {
 
 router.get('/distribution', (req, res) => {
   const days = parseDays(req.query.days, 90);
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  const since = daysAgoISO(days);
 
   const rows = db.prepare(`
     SELECT category, SUM(sessions) as sessions, SUM(total_minutes) as total_minutes FROM (
@@ -223,7 +223,7 @@ router.get('/distribution', (req, res) => {
 
 router.get('/rpe-trend', (req, res) => {
   const days = parseDays(req.query.days, 90);
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  const since = daysAgoISO(days);
 
   const rows = db.prepare(`
     SELECT date, ROUND(AVG(rpe), 1) as avg_rpe
@@ -297,7 +297,7 @@ router.get('/personal-records', (req, res) => {
 
 // Smart recovery analysis
 router.get('/recovery', (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateISO();
 
   // Get recent workout dates with RPE (exclude rest days)
   const recentWorkouts = db.prepare(`
@@ -348,8 +348,8 @@ router.get('/recovery', (req, res) => {
   // Volume spike: current week vs 4-week rolling average
   const weeklyVolume = [];
   for (let i = 0; i < 5; i++) {
-    const weekEnd = new Date(Date.now() - i * 7 * 86400000).toISOString().split('T')[0];
-    const weekStart = new Date(Date.now() - (i + 1) * 7 * 86400000).toISOString().split('T')[0];
+    const weekEnd = daysAgoISO(i * 7);
+    const weekStart = daysAgoISO((i + 1) * 7);
     const vol = db.prepare(
       'SELECT COALESCE(SUM(duration_minutes), 0) as total FROM workouts WHERE date > ? AND date <= ?'
     ).get(weekStart, weekEnd).total;
@@ -482,7 +482,7 @@ router.get('/insight', (req, res) => {
   // Count sessions this week
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const weekStartStr = weekStart.toISOString().split('T')[0];
+  const weekStartStr = localDateISO(weekStart);
   const weekCount = db.prepare(
     'SELECT COUNT(*) as count FROM tool_sessions WHERE date >= ?'
   ).get(weekStartStr).count;
@@ -490,7 +490,7 @@ router.get('/insight', (req, res) => {
   // Check if longest this month
   const monthStart = new Date();
   monthStart.setDate(1);
-  const monthStartStr = monthStart.toISOString().split('T')[0];
+  const monthStartStr = localDateISO(monthStart);
   let catWhere = '';
   const catParams = [monthStartStr];
   if (category) {
@@ -530,7 +530,7 @@ router.get('/insight', (req, res) => {
 // Exercise-specific history: per-exercise time-series data
 router.get('/exercise-history/:exerciseId', (req, res) => {
   const days = parseDays(req.query.days, 365);
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  const since = daysAgoISO(days);
   const exerciseId = Number(req.params.exerciseId);
   if (!Number.isInteger(exerciseId) || exerciseId < 1) return res.status(400).json({ error: 'Invalid exercise ID' });
 
@@ -575,7 +575,7 @@ router.get('/exercise-history/:exerciseId', (req, res) => {
 // Volume detail: weekly tonnage + TUT by category
 router.get('/volume-detail', (req, res) => {
   const days = parseDays(req.query.days, 365);
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  const since = daysAgoISO(days);
 
   const rows = db.prepare(`
     SELECT strftime('%Y-W%W', w.date) as week, w.category,
