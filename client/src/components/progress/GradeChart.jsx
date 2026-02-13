@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card, CardHeader, CardContent } from '../common/Card.jsx';
 import { useGradeProgress } from '../../hooks/useProgress.js';
@@ -7,6 +8,18 @@ import { TrendingUp } from 'lucide-react';
 
 export function GradeChart({ category, days = 90 }) {
   const { grades, loading } = useGradeProgress({ category, days });
+
+  const { data, gradeMap } = useMemo(() => {
+    const byDate = {};
+    grades.forEach(g => {
+      const numeric = gradeToNumeric(g.grade);
+      if (!byDate[g.date] || numeric > byDate[g.date].numeric) {
+        byDate[g.date] = { date: g.date, grade: g.grade, numeric };
+      }
+    });
+    const sorted = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+    return { data: sorted, gradeMap: new Map(sorted.map(d => [d.numeric, d.grade])) };
+  }, [grades]);
 
   if (loading) return null;
 
@@ -18,18 +31,6 @@ export function GradeChart({ category, days = 90 }) {
       </Card>
     );
   }
-
-  // Group by date and take max grade per day
-  const byDate = {};
-  grades.forEach(g => {
-    const numeric = gradeToNumeric(g.grade);
-    if (!byDate[g.date] || numeric > byDate[g.date].numeric) {
-      byDate[g.date] = { date: g.date, grade: g.grade, numeric };
-    }
-  });
-
-  const data = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
-  const gradeMap = new Map(data.map(d => [d.numeric, d.grade]));
 
   return (
     <Card>

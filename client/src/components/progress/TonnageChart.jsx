@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card, CardHeader, CardContent } from '../common/Card.jsx';
 import { useVolumeDetail } from '../../hooks/useProgress.js';
@@ -6,6 +7,15 @@ import { Weight } from 'lucide-react';
 
 export function TonnageChart({ days = 365 }) {
   const { volumeDetail, loading } = useVolumeDetail({ days });
+
+  const data = useMemo(() => {
+    const weeks = {};
+    volumeDetail.forEach(v => {
+      if (!weeks[v.week]) weeks[v.week] = { week: v.week, roped: 0, bouldering: 0, traditional: 0 };
+      weeks[v.week][v.category] = Math.round(v.tonnage_kg);
+    });
+    return Object.values(weeks).sort((a, b) => a.week.localeCompare(b.week));
+  }, [volumeDetail]);
 
   if (loading) return null;
 
@@ -17,15 +27,6 @@ export function TonnageChart({ days = 365 }) {
       </Card>
     );
   }
-
-  // Pivot by week
-  const weeks = {};
-  volumeDetail.forEach(v => {
-    if (!weeks[v.week]) weeks[v.week] = { week: v.week, roped: 0, bouldering: 0, traditional: 0 };
-    weeks[v.week][v.category] = Math.round(v.tonnage_kg);
-  });
-
-  const data = Object.values(weeks).sort((a, b) => a.week.localeCompare(b.week));
 
   return (
     <Card>

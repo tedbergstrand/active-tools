@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card, CardHeader, CardContent } from '../common/Card.jsx';
 import { useVolumeData } from '../../hooks/useProgress.js';
@@ -6,6 +7,15 @@ import { BarChart3 } from 'lucide-react';
 
 export function VolumeChart({ days = 90 }) {
   const { volume, loading } = useVolumeData({ days });
+
+  const data = useMemo(() => {
+    const weeks = {};
+    volume.forEach(v => {
+      if (!weeks[v.week]) weeks[v.week] = { week: v.week, roped: 0, bouldering: 0, traditional: 0 };
+      weeks[v.week][v.category] = v.sessions;
+    });
+    return Object.values(weeks).sort((a, b) => a.week.localeCompare(b.week));
+  }, [volume]);
 
   if (loading) return null;
 
@@ -17,15 +27,6 @@ export function VolumeChart({ days = 90 }) {
       </Card>
     );
   }
-
-  // Pivot by week
-  const weeks = {};
-  volume.forEach(v => {
-    if (!weeks[v.week]) weeks[v.week] = { week: v.week, roped: 0, bouldering: 0, traditional: 0 };
-    weeks[v.week][v.category] = v.sessions;
-  });
-
-  const data = Object.values(weeks).sort((a, b) => a.week.localeCompare(b.week));
 
   return (
     <Card>

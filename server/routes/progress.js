@@ -5,6 +5,70 @@ import { gradeRank } from '../lib/grades.js';
 
 const router = Router();
 
+function computeRecovery(today) {
+  const recentWorkouts = db.prepare(`
+    SELECT date, rpe, duration_minutes FROM workouts
+    WHERE date >= date(?, '-30 days') AND NOT (duration_minutes = 0 AND rpe = 1)
+    ORDER BY date DESC
+  `).all(today);
+
+  if (recentWorkouts.length === 0) {
+    return { status: 'welcome_back', days_since_rest: 0, consecutive_training_days: 0, high_rpe_streak: 0, volume_spike_pct: 0, suggest_deload: false, nudge: 'Welcome! Ready to start training?' };
+  }
+
+  const daysSinceTraining = dateDiffDays(today, recentWorkouts[0].date);
+  if (daysSinceTraining >= 3) {
+    return { status: 'welcome_back', days_since_rest: daysSinceTraining, consecutive_training_days: 0, high_rpe_streak: 0, volume_spike_pct: 0, suggest_deload: false, nudge: `Welcome back! It's been ${daysSinceTraining} days since your last session.` };
+  }
+
+  const trainingDates = [...new Set(recentWorkouts.map(w => w.date))].sort().reverse();
+  let consecutive = 0;
+  let checkStr = trainingDates[0];
+  const dateSet = new Set(trainingDates);
+  while (dateSet.has(checkStr)) { consecutive++; checkStr = prevDateISO(checkStr); }
+  const daysSinceRest = consecutive;
+
+  let highRpeStreak = 0;
+  for (const date of trainingDates) {
+    const dayWorkouts = recentWorkouts.filter(w => w.date === date && w.rpe != null);
+    if (dayWorkouts.length === 0) break;
+    const avgRpe = dayWorkouts.reduce((s, w) => s + w.rpe, 0) / dayWorkouts.length;
+    if (avgRpe >= 8) highRpeStreak++;
+    else break;
+  }
+
+  const weekBounds = [];
+  for (let i = 0; i < 5; i++) weekBounds.push(daysAgoISO((i + 1) * 7), daysAgoISO(i * 7));
+  const volumeRows = db.prepare(`
+    SELECT
+      CASE
+        WHEN date > ? AND date <= ? THEN 0 WHEN date > ? AND date <= ? THEN 1
+        WHEN date > ? AND date <= ? THEN 2 WHEN date > ? AND date <= ? THEN 3
+        WHEN date > ? AND date <= ? THEN 4
+      END as week_idx,
+      COALESCE(SUM(duration_minutes), 0) as total
+    FROM workouts WHERE date > ? GROUP BY week_idx HAVING week_idx IS NOT NULL
+  `).all(...weekBounds, daysAgoISO(35));
+  const weeklyVolume = [0, 0, 0, 0, 0];
+  for (const row of volumeRows) weeklyVolume[row.week_idx] = row.total;
+  const currentWeekVol = weeklyVolume[0];
+  const avgPreviousWeeks = weeklyVolume.slice(1).reduce((s, v) => s + v, 0) / 4;
+  const volumeSpikePct = avgPreviousWeeks > 0 ? Math.round(((currentWeekVol - avgPreviousWeeks) / avgPreviousWeeks) * 100) : 0;
+
+  let aboveAvgStreak = 0;
+  for (let i = 0; i < 4; i++) { if (weeklyVolume[i] > avgPreviousWeeks * 1.1) aboveAvgStreak++; else break; }
+  const suggestDeload = aboveAvgStreak >= 3;
+
+  let status = 'good', nudge = null;
+  if (consecutive >= 7) { status = 'needs_rest'; nudge = `You've trained ${consecutive} days straight. Your body needs recovery to get stronger.`; }
+  else if (highRpeStreak >= 3) { status = 'needs_rest'; nudge = `${highRpeStreak} consecutive high-intensity sessions (RPE 8+). Consider an easy day or rest.`; }
+  else if (volumeSpikePct >= 50) { status = 'moderate'; nudge = `This week's volume is ${volumeSpikePct}% above your recent average. Watch for fatigue.`; }
+  else if (suggestDeload) { status = 'suggest_deload'; nudge = `${aboveAvgStreak} weeks of above-average training. A deload week could boost your next phase.`; }
+  else if (consecutive >= 4) { status = 'moderate'; nudge = `${consecutive} days in a row. A rest day soon will help you absorb these gains.`; }
+
+  return { status, days_since_rest: daysSinceRest, consecutive_training_days: consecutive, high_rpe_streak: highRpeStreak, volume_spike_pct: volumeSpikePct, suggest_deload: suggestDeload, nudge };
+}
+
 function parseDays(raw, fallback) {
   const n = Number(raw);
   return Math.max(1, Math.min(3650, Number.isNaN(n) ? fallback : n));
@@ -233,8 +297,7 @@ router.get('/personal-records', (req, res) => {
   const params = [];
   if (category) { whereClause += ' AND w.category = ?'; params.push(category); }
 
-  // Highest grades — one row per distinct grade via CTE, then sort in JS
-  // (SQL alphabetical ORDER BY gets V9 > V10 wrong, so we sort the small result set)
+  // Highest grades — separate query due to send_type filter, sort in JS
   const highestGrades = db.prepare(`
     WITH ranked AS (
       SELECT ws.grade, ws.send_type, w.date, w.category, e.name as exercise_name,
@@ -251,160 +314,45 @@ router.get('/personal-records', (req, res) => {
     .sort((a, b) => gradeRank(b.grade) - gradeRank(a.grade))
     .slice(0, 10);
 
-  // Max weight on weighted exercises (with correct date via window function)
-  const maxWeights = db.prepare(`
-    WITH ranked AS (
-      SELECT ws.weight_kg as max_weight, e.name as exercise_name, w.date,
-        ROW_NUMBER() OVER (PARTITION BY e.name ORDER BY ws.weight_kg DESC, w.date DESC) as rn
-      FROM workout_sets ws
-      JOIN workout_exercises we ON we.id = ws.workout_exercise_id
-      JOIN workouts w ON w.id = we.workout_id
-      JOIN exercises e ON e.id = we.exercise_id
-      ${whereClause} AND ws.weight_kg IS NOT NULL AND ws.weight_kg > 0
-    )
-    SELECT max_weight, exercise_name, date FROM ranked WHERE rn = 1
-    ORDER BY max_weight DESC
+  // Weight, reps, and duration PRs — single query + JS partitioning
+  const allSets = db.prepare(`
+    SELECT e.name as exercise_name, w.date,
+           ws.weight_kg, ws.reps, ws.duration_seconds
+    FROM workout_sets ws
+    JOIN workout_exercises we ON we.id = ws.workout_exercise_id
+    JOIN workouts w ON w.id = we.workout_id
+    JOIN exercises e ON e.id = we.exercise_id
+    ${whereClause}
+      AND (ws.weight_kg > 0 OR ws.reps IS NOT NULL OR ws.duration_seconds IS NOT NULL)
   `).all(...params);
 
-  // Max reps
-  const maxReps = db.prepare(`
-    WITH ranked AS (
-      SELECT ws.reps as max_reps, e.name as exercise_name, w.date,
-        ROW_NUMBER() OVER (PARTITION BY e.name ORDER BY ws.reps DESC, w.date DESC) as rn
-      FROM workout_sets ws
-      JOIN workout_exercises we ON we.id = ws.workout_exercise_id
-      JOIN workouts w ON w.id = we.workout_id
-      JOIN exercises e ON e.id = we.exercise_id
-      ${whereClause} AND ws.reps IS NOT NULL
-    )
-    SELECT max_reps, exercise_name, date FROM ranked WHERE rn = 1
-    ORDER BY max_reps DESC
-  `).all(...params);
+  const weightByEx = {}, repsByEx = {}, durationByEx = {};
+  for (const s of allSets) {
+    const name = s.exercise_name;
+    if (s.weight_kg > 0 && (!weightByEx[name] || s.weight_kg > weightByEx[name].max_weight ||
+        (s.weight_kg === weightByEx[name].max_weight && s.date > weightByEx[name].date))) {
+      weightByEx[name] = { max_weight: s.weight_kg, exercise_name: name, date: s.date };
+    }
+    if (s.reps != null && (!repsByEx[name] || s.reps > repsByEx[name].max_reps ||
+        (s.reps === repsByEx[name].max_reps && s.date > repsByEx[name].date))) {
+      repsByEx[name] = { max_reps: s.reps, exercise_name: name, date: s.date };
+    }
+    if (s.duration_seconds != null && (!durationByEx[name] || s.duration_seconds > durationByEx[name].max_duration ||
+        (s.duration_seconds === durationByEx[name].max_duration && s.date > durationByEx[name].date))) {
+      durationByEx[name] = { max_duration: s.duration_seconds, exercise_name: name, date: s.date };
+    }
+  }
 
-  // Max duration
-  const maxDurations = db.prepare(`
-    WITH ranked AS (
-      SELECT ws.duration_seconds as max_duration, e.name as exercise_name, w.date,
-        ROW_NUMBER() OVER (PARTITION BY e.name ORDER BY ws.duration_seconds DESC, w.date DESC) as rn
-      FROM workout_sets ws
-      JOIN workout_exercises we ON we.id = ws.workout_exercise_id
-      JOIN workouts w ON w.id = we.workout_id
-      JOIN exercises e ON e.id = we.exercise_id
-      ${whereClause} AND ws.duration_seconds IS NOT NULL
-    )
-    SELECT max_duration, exercise_name, date FROM ranked WHERE rn = 1
-    ORDER BY max_duration DESC
-  `).all(...params);
+  const maxWeights = Object.values(weightByEx).sort((a, b) => b.max_weight - a.max_weight);
+  const maxReps = Object.values(repsByEx).sort((a, b) => b.max_reps - a.max_reps);
+  const maxDurations = Object.values(durationByEx).sort((a, b) => b.max_duration - a.max_duration);
 
   res.json({ highestGrades, maxWeights, maxReps, maxDurations });
 });
 
 // Smart recovery analysis
 router.get('/recovery', (req, res) => {
-  const today = localDateISO();
-
-  // Get recent workout dates with RPE (exclude rest days)
-  const recentWorkouts = db.prepare(`
-    SELECT date, rpe, duration_minutes FROM workouts
-    WHERE date >= date(?, '-30 days')
-      AND NOT (duration_minutes = 0 AND rpe = 1)
-    ORDER BY date DESC
-  `).all(today);
-
-  if (recentWorkouts.length === 0) {
-    return res.json({ status: 'welcome_back', days_since_rest: 0, consecutive_training_days: 0, high_rpe_streak: 0, volume_spike_pct: 0, suggest_deload: false, nudge: 'Welcome! Ready to start training?' });
-  }
-
-  // Days since last training
-  const daysSinceTraining = recentWorkouts.length > 0
-    ? dateDiffDays(today, recentWorkouts[0].date)
-    : 999;
-
-  if (daysSinceTraining >= 3) {
-    return res.json({ status: 'welcome_back', days_since_rest: daysSinceTraining, consecutive_training_days: 0, high_rpe_streak: 0, volume_spike_pct: 0, suggest_deload: false, nudge: `Welcome back! It's been ${daysSinceTraining} days since your last session.` });
-  }
-
-  // Get distinct training dates
-  const trainingDates = [...new Set(recentWorkouts.map(w => w.date))].sort().reverse();
-
-  // Consecutive training days (from most recent)
-  let consecutive = 0;
-  let checkStr = trainingDates[0];
-  const dateSet = new Set(trainingDates);
-  while (dateSet.has(checkStr)) {
-    consecutive++;
-    checkStr = prevDateISO(checkStr);
-  }
-
-  // Days since last rest (first gap in training dates)
-  let daysSinceRest = consecutive;
-
-  // High RPE streak: consecutive dates with avg RPE >= 8
-  let highRpeStreak = 0;
-  for (const date of trainingDates) {
-    const dayWorkouts = recentWorkouts.filter(w => w.date === date && w.rpe != null);
-    if (dayWorkouts.length === 0) break;
-    const avgRpe = dayWorkouts.reduce((s, w) => s + w.rpe, 0) / dayWorkouts.length;
-    if (avgRpe >= 8) highRpeStreak++;
-    else break;
-  }
-
-  // Volume spike: current week vs 4-week rolling average
-  const weekBounds = [];
-  for (let i = 0; i < 5; i++) {
-    weekBounds.push(daysAgoISO((i + 1) * 7), daysAgoISO(i * 7));
-  }
-  const volumeRows = db.prepare(`
-    SELECT
-      CASE
-        WHEN date > ? AND date <= ? THEN 0
-        WHEN date > ? AND date <= ? THEN 1
-        WHEN date > ? AND date <= ? THEN 2
-        WHEN date > ? AND date <= ? THEN 3
-        WHEN date > ? AND date <= ? THEN 4
-      END as week_idx,
-      COALESCE(SUM(duration_minutes), 0) as total
-    FROM workouts
-    WHERE date > ?
-    GROUP BY week_idx
-    HAVING week_idx IS NOT NULL
-  `).all(...weekBounds, daysAgoISO(35));
-  const weeklyVolume = [0, 0, 0, 0, 0];
-  for (const row of volumeRows) weeklyVolume[row.week_idx] = row.total;
-  const currentWeekVol = weeklyVolume[0];
-  const avgPreviousWeeks = weeklyVolume.slice(1).reduce((s, v) => s + v, 0) / 4;
-  const volumeSpikePct = avgPreviousWeeks > 0 ? Math.round(((currentWeekVol - avgPreviousWeeks) / avgPreviousWeeks) * 100) : 0;
-
-  // Sustained high volume: 3+ consecutive above-average weeks
-  let aboveAvgStreak = 0;
-  for (let i = 0; i < 4; i++) {
-    if (weeklyVolume[i] > avgPreviousWeeks * 1.1) aboveAvgStreak++;
-    else break;
-  }
-  const suggestDeload = aboveAvgStreak >= 3;
-
-  // Determine status and nudge
-  let status = 'good';
-  let nudge = null;
-
-  if (consecutive >= 7) {
-    status = 'needs_rest';
-    nudge = `You've trained ${consecutive} days straight. Your body needs recovery to get stronger.`;
-  } else if (highRpeStreak >= 3) {
-    status = 'needs_rest';
-    nudge = `${highRpeStreak} consecutive high-intensity sessions (RPE 8+). Consider an easy day or rest.`;
-  } else if (volumeSpikePct >= 50) {
-    status = 'moderate';
-    nudge = `This week's volume is ${volumeSpikePct}% above your recent average. Watch for fatigue.`;
-  } else if (suggestDeload) {
-    status = 'suggest_deload';
-    nudge = `${aboveAvgStreak} weeks of above-average training. A deload week could boost your next phase.`;
-  } else if (consecutive >= 4) {
-    status = 'moderate';
-    nudge = `${consecutive} days in a row. A rest day soon will help you absorb these gains.`;
-  }
-
-  res.json({ status, days_since_rest: daysSinceRest, consecutive_training_days: consecutive, high_rpe_streak: highRpeStreak, volume_spike_pct: volumeSpikePct, suggest_deload: suggestDeload, nudge });
+  res.json(computeRecovery(localDateISO()));
 });
 
 // Check for personal records in a saved workout
@@ -702,41 +650,7 @@ router.get('/dashboard', (req, res) => {
     longest = Math.max(longest, streak);
   }
 
-  // Recovery (inline, same logic as /recovery but without early returns)
-  const todayStr = localDateISO();
-  const recentWorkouts = db.prepare(`
-    SELECT date, rpe, duration_minutes FROM workouts
-    WHERE date >= date(?, '-30 days') AND NOT (duration_minutes = 0 AND rpe = 1)
-    ORDER BY date DESC
-  `).all(todayStr);
-
-  let recovery = { status: 'good', nudge: null };
-  if (recentWorkouts.length === 0) {
-    recovery = { status: 'welcome_back', nudge: 'Welcome! Ready to start training?' };
-  } else {
-    const daysSinceTraining = dateDiffDays(todayStr, recentWorkouts[0].date);
-    if (daysSinceTraining >= 3) {
-      recovery = { status: 'welcome_back', nudge: `Welcome back! It's been ${daysSinceTraining} days since your last session.` };
-    } else {
-      const trainingDates = [...new Set(recentWorkouts.map(w => w.date))].sort().reverse();
-      let consecutive = 0;
-      let cs = trainingDates[0];
-      const ds = new Set(trainingDates);
-      while (ds.has(cs)) { consecutive++; cs = prevDateISO(cs); }
-
-      let highRpeStreak = 0;
-      for (const date of trainingDates) {
-        const dayW = recentWorkouts.filter(w => w.date === date && w.rpe != null);
-        if (dayW.length === 0) break;
-        if (dayW.reduce((s, w) => s + w.rpe, 0) / dayW.length >= 8) highRpeStreak++;
-        else break;
-      }
-
-      if (consecutive >= 7) recovery = { status: 'needs_rest', nudge: `You've trained ${consecutive} days straight. Your body needs recovery to get stronger.` };
-      else if (highRpeStreak >= 3) recovery = { status: 'needs_rest', nudge: `${highRpeStreak} consecutive high-intensity sessions (RPE 8+). Consider an easy day or rest.` };
-      else if (consecutive >= 4) recovery = { status: 'moderate', nudge: `${consecutive} days in a row. A rest day soon will help you absorb these gains.` };
-    }
-  }
+  const recovery = computeRecovery(localDateISO());
 
   res.json({ summary, streak: { current, longest }, recovery });
 });

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '../common/Card.jsx';
 import { useFrequencyData } from '../../hooks/useProgress.js';
 import { EmptyState } from '../common/EmptyState.jsx';
@@ -8,6 +9,22 @@ const CATEGORY_COLORS = { roped: '#3b82f6', bouldering: '#f59e0b', traditional: 
 export function FrequencyChart({ days = 90 }) {
   const { frequency, loading } = useFrequencyData({ days });
 
+  const cells = useMemo(() => {
+    const byDate = {};
+    for (const f of frequency) {
+      (byDate[f.date] ??= []).push(f);
+    }
+    const today = new Date();
+    const result = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      result.push({ date: dateStr, sessions: byDate[dateStr] || [] });
+    }
+    return result;
+  }, [frequency, days]);
+
   if (loading) return null;
 
   if (frequency.length === 0) {
@@ -17,22 +34,6 @@ export function FrequencyChart({ days = 90 }) {
         <CardContent><EmptyState icon={CalendarDays} title="No sessions yet" description="Log workouts to see your training frequency" /></CardContent>
       </Card>
     );
-  }
-
-  // Pre-index frequency data by date for O(1) lookups
-  const byDate = {};
-  for (const f of frequency) {
-    (byDate[f.date] ??= []).push(f);
-  }
-
-  // Build a calendar-like grid for the last N days
-  const today = new Date();
-  const cells = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
-    cells.push({ date: dateStr, sessions: byDate[dateStr] || [] });
   }
 
   return (
