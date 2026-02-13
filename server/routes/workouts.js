@@ -41,7 +41,7 @@ router.get('/', (req, res) => {
   const { category, location, search, date_from, date_to } = req.query;
   const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 50));
   const offset = Math.max(0, Number(req.query.offset) || 0);
-  let sql = 'SELECT * FROM workouts WHERE 1=1';
+  let sql = 'SELECT *, COUNT(*) OVER() as total_count FROM workouts WHERE 1=1';
   const params = [];
   if (category) {
     if (!VALID_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Invalid category' });
@@ -54,16 +54,9 @@ router.get('/', (req, res) => {
   sql += ' ORDER BY date DESC, created_at DESC LIMIT ? OFFSET ?';
   params.push(limit, offset);
 
-  const workouts = db.prepare(sql).all(...params);
-
-  let countSql = 'SELECT COUNT(*) as count FROM workouts WHERE 1=1';
-  const countParams = [];
-  if (category) { countSql += ' AND category = ?'; countParams.push(category); }
-  if (location) { countSql += ' AND location LIKE ?'; countParams.push(`%${location}%`); }
-  if (search) { countSql += ' AND (notes LIKE ? OR location LIKE ?)'; countParams.push(`%${search}%`, `%${search}%`); }
-  if (date_from) { countSql += ' AND date >= ?'; countParams.push(date_from); }
-  if (date_to) { countSql += ' AND date <= ?'; countParams.push(date_to); }
-  const total = db.prepare(countSql).get(...countParams);
+  const rows = db.prepare(sql).all(...params);
+  const totalCount = rows.length > 0 ? rows[0].total_count : 0;
+  const workouts = rows.map(({ total_count, ...w }) => w);
 
   // Attach exercise summaries for each workout in a single batch query
   if (workouts.length) {
@@ -90,7 +83,7 @@ router.get('/', (req, res) => {
     }
   }
 
-  res.json({ workouts, total: total.count });
+  res.json({ workouts, total: totalCount });
 });
 
 router.get('/:id', (req, res) => {

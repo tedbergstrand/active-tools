@@ -32,7 +32,7 @@ export default function App() {
       <TimerProvider>
         <ToolSessionProvider>
           <ErrorBoundary>
-          <Suspense fallback={null}>
+          <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>}>
           <Routes>
             <Route element={<AppShell />}>
               <Route path="/" element={<Dashboard />} />

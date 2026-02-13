@@ -122,6 +122,8 @@ CREATE INDEX IF NOT EXISTS idx_plans_active ON plans(is_active);
 CREATE INDEX IF NOT EXISTS idx_plan_weeks_plan ON plan_weeks(plan_id);
 CREATE INDEX IF NOT EXISTS idx_plan_workouts_week ON plan_workouts(plan_week_id);
 CREATE INDEX IF NOT EXISTS idx_plan_workout_exercises_workout ON plan_workout_exercises(plan_workout_id);
+CREATE INDEX IF NOT EXISTS idx_workout_exercises_exercise ON workout_exercises(exercise_id);
+CREATE INDEX IF NOT EXISTS idx_plan_workout_exercises_exercise ON plan_workout_exercises(exercise_id);
 
 -- Training tool definitions (seeded, not user-editable)
 CREATE TABLE IF NOT EXISTS tool_definitions (

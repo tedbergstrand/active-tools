@@ -111,14 +111,15 @@ router.get('/frequency', (req, res) => {
 });
 
 router.get('/streak', (req, res) => {
-  // Include both workout dates and tool session dates
+  // Include both workout dates and tool session dates (limit to 365 days for perf)
+  const since = daysAgoISO(365);
   const dates = db.prepare(
     `SELECT DISTINCT date FROM (
-       SELECT date FROM workouts
+       SELECT date FROM workouts WHERE date >= ?
        UNION
-       SELECT date FROM tool_sessions
+       SELECT date FROM tool_sessions WHERE date >= ?
      ) ORDER BY date DESC`
-  ).all().map(r => r.date);
+  ).all(since, since).map(r => r.date);
 
   if (dates.length === 0) return res.json({ current: 0, longest: 0 });
 
@@ -671,12 +672,15 @@ router.get('/dashboard', (req, res) => {
     toolMinutes: Math.round(toolSessions.seconds / 60),
   };
 
-  // Streak
+  // Streak (limit to 365 days for perf)
+  const streakSince = daysAgoISO(365);
   const dates = db.prepare(
     `SELECT DISTINCT date FROM (
-       SELECT date FROM workouts UNION SELECT date FROM tool_sessions
+       SELECT date FROM workouts WHERE date >= ?
+       UNION
+       SELECT date FROM tool_sessions WHERE date >= ?
      ) ORDER BY date DESC`
-  ).all().map(r => r.date);
+  ).all(streakSince, streakSince).map(r => r.date);
 
   let current = 0, longest = 0;
   if (dates.length > 0) {

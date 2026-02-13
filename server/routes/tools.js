@@ -7,7 +7,7 @@ const router = Router();
 // GET /api/tools — list all tool definitions
 router.get('/', (req, res) => {
   const { category, tool_type, difficulty } = req.query;
-  let sql = 'SELECT * FROM tool_definitions WHERE 1=1';
+  let sql = 'SELECT id, slug, name, category, subcategory, description, trains, tool_type, difficulty, requires_partner FROM tool_definitions WHERE 1=1';
   const params = [];
 
   if (category) {
@@ -159,7 +159,7 @@ router.get('/suggestions', (req, res) => {
     `SELECT DISTINCT tool_id, MAX(created_at) as last_used
      FROM tool_sessions GROUP BY tool_id ORDER BY last_used DESC LIMIT 10`
   ).all().map(r => r.tool_id);
-  const allTools = db.prepare('SELECT * FROM tool_definitions ORDER BY category, name').all();
+  const allTools = db.prepare('SELECT id, slug, name, category, subcategory, tool_type, difficulty FROM tool_definitions ORDER BY category, name').all();
   res.json({ favoriteIds: favIds, recentIds, tools: allTools });
 });
 

@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { Trash2 } from 'lucide-react';
 import { GradePicker } from './GradePicker.jsx';
 import { SEND_TYPES, WALL_ANGLES, GRIP_TYPES } from '../../utils/constants.js';
 import { parseNumericInput } from '../../utils/formatters.js';
 
-export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemove }) {
+export const SetRow = memo(function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemove }) {
   const update = (field, value) => onChange(index, { ...set, [field]: value });
 
   const isClimbing = exerciseType === 'roped' || exerciseType === 'bouldering';
@@ -104,4 +105,4 @@ export function SetRow({ set, index, exerciseType, gradeSystem, onChange, onRemo
       </button>
     </div>
   );
-}
+});

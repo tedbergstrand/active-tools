@@ -22,40 +22,31 @@ export function Dashboard() {
   const [toolHint, setToolHint] = useState(null);
   const [todayPlan, setTodayPlan] = useState(null);
 
-  // Load dashboard composite: summary + streak + recovery in one call
+  // Load dashboard data, today's plan, and tool suggestions in parallel
   useEffect(() => {
     let cancelled = false;
-    progressApi.dashboard().then(data => {
-      if (!cancelled) setDashboard(data);
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-
-  // Load today's planned workouts
-  useEffect(() => {
-    let cancelled = false;
-    plansApi.todayPlan().then(data => {
-      if (!cancelled && data.plan && data.workouts?.length) setTodayPlan(data);
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-
-  // Load tool suggestions in one call (favorites + recent + all tools)
-  useEffect(() => {
-    let cancelled = false;
-    toolsApi.suggestions().then(({ favoriteIds, recentIds, tools }) => {
+    Promise.all([
+      progressApi.dashboard().catch(() => null),
+      plansApi.todayPlan().catch(() => null),
+      toolsApi.suggestions().catch(() => null),
+    ]).then(([dashData, planData, suggestionsData]) => {
       if (cancelled) return;
-      const findTool = (id) => tools.find(t => t.id === id);
-      if (favoriteIds.length > 0) {
-        const tool = findTool(favoriteIds[0]);
-        if (tool) return setToolHint({ type: 'favorite', tool });
+      if (dashData) setDashboard(dashData);
+      if (planData?.plan && planData.workouts?.length) setTodayPlan(planData);
+      if (suggestionsData) {
+        const { favoriteIds, recentIds, tools } = suggestionsData;
+        const findTool = (id) => tools.find(t => t.id === id);
+        if (favoriteIds.length > 0) {
+          const tool = findTool(favoriteIds[0]);
+          if (tool) { setToolHint({ type: 'favorite', tool }); return; }
+        }
+        if (recentIds.length > 0) {
+          const tool = findTool(recentIds[0]);
+          if (tool) { setToolHint({ type: 'recent', tool }); return; }
+        }
+        setToolHint({ type: 'discover' });
       }
-      if (recentIds.length > 0) {
-        const tool = findTool(recentIds[0]);
-        if (tool) return setToolHint({ type: 'recent', tool });
-      }
-      setToolHint({ type: 'discover' });
-    }).catch(() => {});
+    });
     return () => { cancelled = true; };
   }, []);
 
