@@ -157,6 +157,7 @@ CREATE INDEX IF NOT EXISTS idx_tool_definitions_category ON tool_definitions(cat
 CREATE INDEX IF NOT EXISTS idx_tool_definitions_slug ON tool_definitions(slug);
 CREATE INDEX IF NOT EXISTS idx_tool_sessions_tool_date ON tool_sessions(tool_id, date);
 CREATE INDEX IF NOT EXISTS idx_tool_sessions_date ON tool_sessions(date);
+CREATE INDEX IF NOT EXISTS idx_tool_sessions_created_at ON tool_sessions(created_at DESC);
 
 -- Tool favorites
 CREATE TABLE IF NOT EXISTS tool_favorites (

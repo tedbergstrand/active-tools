@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardContent } from '../common/Card.jsx';
 import { useExerciseHistory } from '../../hooks/useProgress.js';
@@ -30,8 +31,10 @@ export function ExerciseProgressChart({ exerciseId, days = 365 }) {
   }
 
   const metric = METRIC_CONFIG[exercise.default_metric] || METRIC_CONFIG.reps;
-  const chartData = history.filter(h => h[metric.key] != null);
-  const gradeMap = new Map(history.map(h => [h.grade_rank, h.grade]));
+  const { chartData, gradeMap } = useMemo(() => ({
+    chartData: history.filter(h => h[metric.key] != null),
+    gradeMap: new Map(history.map(h => [h.grade_rank, h.grade])),
+  }), [history, metric.key]);
 
   if (!chartData.length) return null;
 

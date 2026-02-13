@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Card, CardHeader, CardContent } from '../common/Card.jsx';
 import { useDistribution } from '../../hooks/useProgress.js';
@@ -10,6 +11,13 @@ const COLORS = { roped: '#3b82f6', bouldering: '#f59e0b', traditional: '#10b981'
 export function DistributionChart({ days = 90 }) {
   const { distribution, loading } = useDistribution({ days });
 
+  const data = useMemo(() => distribution.map(d => ({
+    name: CATEGORIES[d.category]?.label || d.category,
+    value: d.sessions,
+    minutes: d.total_minutes,
+    color: COLORS[d.category] || '#6b7280',
+  })), [distribution]);
+
   if (loading) return null;
   if (distribution.length === 0) {
     return (
@@ -19,13 +27,6 @@ export function DistributionChart({ days = 90 }) {
       </Card>
     );
   }
-
-  const data = distribution.map(d => ({
-    name: CATEGORIES[d.category]?.label || d.category,
-    value: d.sessions,
-    minutes: d.total_minutes,
-    color: COLORS[d.category] || '#6b7280',
-  }));
 
   return (
     <Card>

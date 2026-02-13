@@ -16,11 +16,15 @@ export function ToolSessionFloatingWidget() {
   const location = useLocation();
   const [display, setDisplay] = useState({ elapsed: 0, stepLabel: '', stepTimeLeft: 0 });
 
-  // Poll session state ref for display updates
+  // Poll session state ref for display updates (only re-render when values change)
   useEffect(() => {
     if (!isActive || !minimized) return;
     const id = setInterval(() => {
-      setDisplay({ ...sessionStateRef.current });
+      const s = sessionStateRef.current;
+      setDisplay(prev => {
+        if (prev.elapsed === s.elapsed && prev.stepLabel === s.stepLabel && prev.stepTimeLeft === s.stepTimeLeft) return prev;
+        return { ...s };
+      });
     }, 200);
     return () => clearInterval(id);
   }, [isActive, minimized, sessionStateRef]);

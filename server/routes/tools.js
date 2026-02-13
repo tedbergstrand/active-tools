@@ -89,15 +89,14 @@ router.get('/sessions/history', (req, res) => {
 
 // GET /api/tools/sessions/stats — aggregate stats
 router.get('/sessions/stats', (req, res) => {
-  const total = db.prepare('SELECT COUNT(*) as count FROM tool_sessions').get();
-  const totalTime = db.prepare('SELECT COALESCE(SUM(duration_seconds), 0) as total FROM tool_sessions').get();
   const weekAgo = daysAgoISO(7);
-  const thisWeek = db.prepare(
-    `SELECT COUNT(*) as count FROM tool_sessions WHERE date >= ?`
-  ).get(weekAgo);
-  const thisWeekTime = db.prepare(
-    `SELECT COALESCE(SUM(duration_seconds), 0) as total FROM tool_sessions WHERE date >= ?`
-  ).get(weekAgo);
+  const agg = db.prepare(`
+    SELECT COUNT(*) as total_count,
+      COALESCE(SUM(duration_seconds), 0) as total_seconds,
+      SUM(CASE WHEN date >= ? THEN 1 ELSE 0 END) as week_count,
+      COALESCE(SUM(CASE WHEN date >= ? THEN duration_seconds ELSE 0 END), 0) as week_seconds
+    FROM tool_sessions
+  `).get(weekAgo, weekAgo);
   const mostUsed = db.prepare(
     `SELECT td.id, td.name, td.slug, td.category, COUNT(*) as sessions
      FROM tool_sessions ts JOIN tool_definitions td ON td.id = ts.tool_id
@@ -110,10 +109,10 @@ router.get('/sessions/stats', (req, res) => {
   ).all();
 
   res.json({
-    totalSessions: total.count,
-    totalSeconds: totalTime.total,
-    weekSessions: thisWeek.count,
-    weekSeconds: thisWeekTime.total,
+    totalSessions: agg.total_count,
+    totalSeconds: agg.total_seconds,
+    weekSessions: agg.week_count,
+    weekSeconds: agg.week_seconds,
     mostUsed,
     byCategory,
   });
