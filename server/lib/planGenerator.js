@@ -103,7 +103,7 @@ export function generatePlanStructure(plan) {
       const exercises = tmpl.exercises
         .map((name, i) => {
           const ex = getExercise(name);
-          if (!ex) return null;
+          if (!ex) { console.warn(`[planGenerator] Exercise "${name}" not found, skipping`); return null; }
           const base = BASE_TARGETS[ex.default_metric] || BASE_TARGETS.reps;
           const progressed = applyProgression(base, w);
           return {

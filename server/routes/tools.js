@@ -47,6 +47,7 @@ router.get('/favorites', (req, res) => {
 // POST /api/tools/favorites/:toolId — add favorite
 router.post('/favorites/:toolId', (req, res) => {
   const toolId = Number(req.params.toolId);
+  if (!Number.isInteger(toolId) || toolId < 1) return res.status(400).json({ error: 'Invalid tool ID' });
   try {
     db.prepare('INSERT OR IGNORE INTO tool_favorites (tool_id) VALUES (?)').run(toolId);
     res.status(201).json({ ok: true });
@@ -58,13 +59,16 @@ router.post('/favorites/:toolId', (req, res) => {
 // DELETE /api/tools/favorites/:toolId — remove favorite
 router.delete('/favorites/:toolId', (req, res) => {
   const toolId = Number(req.params.toolId);
+  if (!Number.isInteger(toolId) || toolId < 1) return res.status(400).json({ error: 'Invalid tool ID' });
   db.prepare('DELETE FROM tool_favorites WHERE tool_id = ?').run(toolId);
   res.json({ ok: true });
 });
 
 // GET /api/tools/sessions/history — get session history
 router.get('/sessions/history', (req, res) => {
-  const { tool_id, limit = 20, offset = 0 } = req.query;
+  const { tool_id } = req.query;
+  const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 20));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
   let sql = `SELECT ts.*, td.name as tool_name, td.slug as tool_slug, td.category as tool_category
     FROM tool_sessions ts
     JOIN tool_definitions td ON td.id = ts.tool_id
@@ -77,7 +81,7 @@ router.get('/sessions/history', (req, res) => {
   }
 
   sql += ' ORDER BY ts.created_at DESC LIMIT ? OFFSET ?';
-  params.push(Number(limit), Number(offset));
+  params.push(limit, offset);
 
   const sessions = db.prepare(sql).all(...params);
   res.json(sessions);
@@ -131,6 +135,10 @@ router.get('/sessions/recent-tools', (req, res) => {
 router.post('/sessions', (req, res) => {
   const { tool_id, duration_seconds, config, results, notes } = req.body;
   if (!tool_id) return res.status(400).json({ error: 'tool_id required' });
+  if (duration_seconds != null) {
+    const sec = Number(duration_seconds);
+    if (!Number.isFinite(sec) || sec < 0) return res.status(400).json({ error: 'duration_seconds must be non-negative' });
+  }
 
   const tool = db.prepare('SELECT id FROM tool_definitions WHERE id = ?').get(tool_id);
   if (!tool) return res.status(404).json({ error: 'Tool not found' });
